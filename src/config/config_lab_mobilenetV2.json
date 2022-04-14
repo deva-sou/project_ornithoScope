@@ -1,6 +1,6 @@
 {
     "model" : {
-        "backend":              "MobileNet",
+        "backend":              "MobileNetV2",
         "input_size_w":         224,
         "input_size_h":         224,
         "gray_mode":            false,
@@ -14,17 +14,15 @@
         "path_raw_data":        "/home/acarlier/code/data_ornithoscope/p0133_bird_data/raw_data/"
     },
 
-    "parser_annotation_type":    "csv",
-
     "train": {
         "train_csv_file":       "/home/acarlier/code/OrnithoScope_keras/keras_yolo2/birds_data_csv/input_train.csv",
         "train_csv_base_path":  "/home/acarlier/code/data_ornithoscope/p0133_bird_data/raw_data/",
-        "train_image_folder":   "./birds_data/trainset/img/",
-        "train_annot_folder":   "./birds_data/trainset/ann/",     
+        "train_image_folder":   "",
+        "train_annot_folder":   "",     
 
         "callback":             null,
         "train_times":          1,
-        "pretrained_weights":   "../MobileNet_bestLoss.h5",
+        "pretrained_weights":   "../MobileNetV2_bestLoss.h5",
         "batch_size":           16,
         "learning_rate":        1e-3,
         "nb_epochs":            100,
@@ -41,7 +39,7 @@
         "coord_scale":          1.0,
         "class_scale":          1.0,
 
-        "saved_weights_name":   "../MobileNet.h5"
+        "saved_weights_name":   "../MobileNetV2.h5"
     },
 
     "valid": {
@@ -49,16 +47,9 @@
         "score_threshold":      0.5,
         "valid_csv_file":       "/home/acarlier/code/OrnithoScope_keras/keras_yolo2/birds_data_csv/input_test.csv",
         "valid_csv_base_path":  "/home/acarlier/code/data_ornithoscope/p0133_bird_data/raw_data/",
-        "valid_image_folder":   "/home/acarlier/code/OrnithoScope_keras/keras_yolo2/birds_data/testset/img/",
-        "valid_annot_folder":   "/home/acarlier/code/OrnithoScope_keras/keras_yolo2/birds_data/testset/ann/",
+        "valid_image_folder":   "",
+        "valid_annot_folder":   "",
 
         "valid_times":          1
-    },
-
-    "backup":{
-        "create_backup":        false,
-        "redirect_model":       false,
-        "backup_path":          "../backup",
-        "backup_prefix":        "MobileNet_birds"
     }
 }

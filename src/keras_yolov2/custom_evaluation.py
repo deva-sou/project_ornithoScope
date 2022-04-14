@@ -207,7 +207,7 @@ class MapEvaluation(keras.callbacks.Callback):
             recalls[label] = recall
             f1_scores[label] = f1_score
 
-        print('calculing done')
+        print('computing done')
         
         return precisions,recalls,f1_scores,average_precisions
 
@@ -221,7 +221,7 @@ argparser = argparse.ArgumentParser(
 argparser.add_argument(
     '-c',
     '--conf',
-    default='config.json',
+    default='config/config_lab_mobilenetV1.json',
     help='path to configuration file')
 
 argparser.add_argument(
@@ -333,7 +333,7 @@ def _main_(args):
     #   Evaluate the network
     #########################
 
-    print("calculing mAP for iou threshold = {}".format(args.iou))
+    print("computing mAP for iou threshold = {}".format(args.iou))
     generator_config = {
                 'IMAGE_H': yolo._input_size[0],
                 'IMAGE_W': yolo._input_size[1],
@@ -355,7 +355,7 @@ def _main_(args):
         valid_eval = MapEvaluation(yolo, valid_generator,
                                    iou_threshold=args.iou)
 
-        print('calculing metrics per classes')
+        print('computing metrics per classes')
         precisions,recalls,f1_scores,_map, average_precisions = valid_eval.evaluate_map()
         for label, average_precision in average_precisions.items():
             print(f"map {yolo.labels[label]}, {average_precision}")
@@ -380,7 +380,7 @@ def _main_(args):
                                         jitter=False)  
         train_eval = MapEvaluation(yolo, train_generator,
                                 iou_threshold=args.iou)
-        print('calculing metrics per classes')
+        print('computing metrics per classes')
         precisions,recalls,f1_scores,_map, average_precisions = train_eval.evaluate_map()
         pickle.dump(precisions, open( f"keras_yolov2/pickles/{config['model']['backend']}_precisions.p", "wb" ) )
         pickle.dump(recalls, open( f"keras_yolov2/pickles/{config['model']['backend']}_recalls.p", "wb" ) )

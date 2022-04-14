@@ -1,13 +1,14 @@
 #! /usr/bin/env python3
-from keras_yolov2.preprocessing import parse_annotation_xml, parse_annotation_csv
+from keras_yolov2.preprocessing import parse_annotation_csv
 from keras_yolov2.preprocessing import BatchGenerator
-from keras_yolov2.utils import enable_memory_growth
+from keras_yolov2.utils import enable_memory_growth,print_results_metrics_per_classes
 from keras_yolov2.frontend import YOLO
 from keras_yolov2.map_evaluation import MapEvaluation
 import argparse
 import json
 import os
 import pickle
+from datetime import datetime
 
 argparser = argparse.ArgumentParser(
     description='Train and validate YOLO_v2 model on any dataset')
@@ -15,7 +16,7 @@ argparser = argparse.ArgumentParser(
 argparser.add_argument(
     '-c',
     '--conf',
-    default='config.json',
+    default='config/config_lab_mobilenetV1.json',
     help='path to configuration file')
 
 argparser.add_argument(
@@ -48,39 +49,13 @@ def _main_(args):
     #   Parse the annotations 
     ##########################
     without_valid_imgs = False
-    # if config['parser_annotation_type'] == 'xml':
-    #     # parse annotations of the training set
-    #     train_imgs, train_labels = parse_annotation_xml(config['train']['train_annot_folder'], 
-    #                                                     config['train']['train_image_folder'],
-    #                                                     config['model']['labels'])
 
-    #     # parse annotations of the validation set, if any.
-    #     if os.path.exists(config['valid']['valid_annot_folder']):
-    #         valid_imgs, valid_labels = parse_annotation_xml(config['valid']['valid_annot_folder'], 
-    #                                                         config['valid']['valid_image_folder'],
-    #                                                         config['model']['labels'])
-    #     else:
-    #         without_valid_imgs = True
+    # parse annotations of the training set
+    train_imgs, train_labels = parse_annotation_csv(config['data']['train_csv_file'],
+                                                    config['model']['labels'],
+                                                    config['data']['base_path'])
 
-    if config['parser_annotation_type'] == 'csv':
-        # parse annotations of the training set
-        train_imgs, train_labels = parse_annotation_csv(config['train']['train_csv_file'],
-                                                        config['model']['labels'],
-                                                        config['train']['train_csv_base_path'])
-
-        # parse annotations of the validation set, if any.
-        if os.path.exists(config['valid']['valid_csv_file']):
-            print(f'\t csv found')
-            valid_imgs, valid_labels = parse_annotation_csv(config['valid']['valid_csv_file'],
-                                                            config['model']['labels'],
-                                                            config['valid']['valid_csv_base_path'])
-            print('\n \t \t len valid images ', len(valid_imgs),'\n')
-        else:
-            without_valid_imgs = True
-    else:
-        raise ValueError("'parser_annotations_type' must be 'xml' or 'csv' not {}.".format(config['parser_annotations_type']))
-
-    # remove samples without objects in the image
+       # remove samples without objects in the image
     for i in range(len(train_imgs)-1, 0, -1):
         if len(train_imgs[i]['object']) == 0:
             del train_imgs[i]
@@ -128,75 +103,56 @@ def _main_(args):
     #   Evaluate the network
     #########################
 
-    print("calculing mAP for iou threshold = {}".format(args.iou))
-    generator_config = {
-                'IMAGE_H': yolo._input_size[0],
-                'IMAGE_W': yolo._input_size[1],
-                'IMAGE_C': yolo._input_size[2],
-                'GRID_H': yolo._grid_h,
-                'GRID_W': yolo._grid_w,
-                'BOX': yolo._nb_box,
-                'LABELS': yolo.labels,
-                'CLASS': len(yolo.labels),
-                'ANCHORS': yolo._anchors,
-                'BATCH_SIZE': 4,
-                'TRUE_BOX_BUFFER': 10 # yolo._max_box_per_image,
-            } 
-    if not without_valid_imgs:
-        valid_generator = BatchGenerator(valid_imgs, 
-                                         generator_config,
-                                         norm=yolo._feature_extractor.normalize,
-                                         jitter=False)
-        print('VALIDATION LABELS: ', config['model']['labels'])
-        valid_eval = MapEvaluation(yolo, valid_generator,
-                                   iou_threshold=args.iou,
-                                   label_names=config['model']['labels'],
-                                   model_name=config['model']['backend'])
-
-        print('calculing metrics per classes')
-        precisions,recalls,f1_scores,_map, average_precisions = valid_eval.evaluate_map()
-        for label, average_precision in average_precisions.items():
-            print(f"map {yolo.labels[label]}, {average_precision}")
-        for label, precision in precisions.items():
-            print(f"precision {yolo.labels[label]}, {precision}") 
-        for label, recall in recalls.items():
-            print(f"recall {yolo.labels[label]}, {recall}")
-        for label, f1_score in f1_scores.items():
-            print(f"f1 {yolo.labels[label]}, {f1_score}")
-        pickle.dump(precisions, open( f"keras_yolov2/pickles/precisions_{config['model']['backend']}.p", "wb" ) )
-        pickle.dump(recalls, open( f"keras_yolov2/pickles/recalls_{config['model']['backend']}.p", "wb" ) )
-        pickle.dump(f1_scores, open( f"keras_yolov2/pickles/f1_scores_{config['model']['backend']}.p", "wb" ) )
-        pickle.dump(average_precisions, open( f"keras_yolov2/pickles/average_precisions_{config['model']['backend']}.p", "wb" ) )
-        
-        print('validation dataset mAP: {}\n'.format(_map))
-
-
-    else:
-        train_generator = BatchGenerator(train_imgs, 
-                                        generator_config, 
-                                        norm=yolo._feature_extractor.normalize,
-                                        jitter=False)  
-        train_eval = MapEvaluation(yolo, train_generator,
-                                iou_threshold=args.iou,
-                                label_names=config['model']['labels'],
-                                model_name=config['model']['backend'])
-        print('calculing metrics per classes')
-        precisions,recalls,f1_scores,_map, average_precisions = train_eval.evaluate_map()
-        pickle.dump(precisions, open( f"keras_yolov2/pickles/{config['model']['backend']}_precisions.p", "wb" ) )
-        pickle.dump(recalls, open( f"keras_yolov2/pickles/{config['model']['backend']}_recalls.p", "wb" ) )
-        pickle.dump(f1_scores, open( f"keras_yolov2/pickles/{config['model']['backend']}_f1_scores.p", "wb" ) )
-        pickle.dump(average_precisions, open( f"keras_yolo2/keras_yolov2/pickles/{config['model']['backend']}_average_precisions.p", "wb" ) )
-    
-    for label, average_precision in average_precisions.items():
-        print(f"map {yolo.labels[label]}, {average_precision}")
-    for label, precision in precisions.items():
-        print(f"precision {yolo.labels[label]}, {precision}") 
-    for label, recall in recalls.items():
-        print(f"recall {yolo.labels[label]}, {recall}")
-    for label, f1_score in f1_scores.items():
-        print(f"f1 {yolo.labels[label]}, {f1_score}")
-    print('mAP: {}'.format(_map))
-
+     # parse annotations of the validation set, if any.
+    validation_paths = config['data']['test_csv_file']
+    directory_name = f"{config['model']['backend']}_{datetime.today().strftime('%Y-%m-%d-%H:%M:%S')}"
+    print("Directory name for metrics: ", directory_name)
+    parent_dir = config['data']['saved_pickles_path']
+    path = os.path.join(parent_dir, directory_name)
+    os.mkdir(path)
+    for valid_path in validation_paths:
+        if os.path.exists(valid_path):
+            print(f"\n \nParsing {valid_path.split('/')[-1]}")
+            valid_imgs, seen_valid_labels = parse_annotation_csv(valid_path,
+                                                            config['model']['labels'],
+                                                            config['data']['base_path'])
+            #print("computing mAP for iou threshold = {}".format(args.iou))
+            generator_config = {
+                        'IMAGE_H': yolo._input_size[0],
+                        'IMAGE_W': yolo._input_size[1],
+                        'IMAGE_C': yolo._input_size[2],
+                        'GRID_H': yolo._grid_h,
+                        'GRID_W': yolo._grid_w,
+                        'BOX': yolo._nb_box,
+                        'LABELS': yolo.labels,
+                        'CLASS': len(yolo.labels),
+                        'ANCHORS': yolo._anchors,
+                        'BATCH_SIZE': 4,
+                        'TRUE_BOX_BUFFER': 10 # yolo._max_box_per_image,
+                    } 
+            valid_generator = BatchGenerator(valid_imgs, 
+                                                generator_config,
+                                                norm=yolo._feature_extractor.normalize,
+                                                jitter=False)
+            valid_eval = MapEvaluation(yolo, valid_generator,
+                                    iou_threshold=args.iou,
+                                    label_names=config['model']['labels'],
+                                    model_name=config['model']['backend'])
+            print('Number of valid images: ', len(valid_imgs))
+            print('Computing metrics per classes...')
+            predictions,class_metrics,class_res,p_global, r_global,f1_global = valid_eval.evaluate_map()
+            print('Done.')
+            #print('\nTask: ', valid_path)
+            task_name = valid_path.split('/')[-1].split('.')[0]
+            print("For ",task_name)
+            print('VALIDATION LABELS: ', seen_valid_labels)
+            print('Final results:')
+            print_results_metrics_per_classes(class_res)
+            print(f"Globals: P={p_global} R={r_global} F1={f1_global}\n")
+            pickle.dump(predictions, open( f"{path}/prediction_TP_FP_FN_{config['model']['backend']}_{task_name}.p", "wb" ) )
+            pickle.dump(class_metrics, open( f"{path}/TP_FP_FN_{config['model']['backend']}_{task_name}.p", "wb" ) )
+            pickle.dump(class_res, open( f"{path}/P_R_F1_{config['model']['backend']}_{task_name}.p", "wb" ) )
+            pickle.dump(class_res, open( f"{path}/P_R_F1_global_{config['model']['backend']}_{task_name}.p", "wb" ) )  
 
 if __name__ == '__main__':
     _args = argparser.parse_args()

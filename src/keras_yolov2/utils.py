@@ -326,39 +326,6 @@ def enable_memory_growth():
             # Memory growth must be set before GPUs have been initialized
             print(e)
 
-
-def create_backup(config):
-    # TODO: the backup creation should be improved, because if the keras_yolo is used as module and the train.py and
-    # config.json is in another folder, it wont be copied to the backup
-
-    backup_folder = config['backup']['backup_path']
-    prefix = config['backup']['backup_prefix']
-    backup_id = datetime.now().strftime('%Y%m%d%H%M%S')
-    train_folder_name = "_".join([prefix, backup_id])
-    path = os.path.join(backup_folder, train_folder_name)
-    if os.path.isdir(path):
-        shutil.rmtree(path)
-    os.makedirs(path)
-
-    shutil.copytree(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."), os.path.join(path, "Keras-yolo2"),
-                    ignore=shutil.ignore_patterns(".git"))
-    readme_message = ""
-    while readme_message == "":
-        readme_message = input("Insert a comment about this training: ")
-    with open(os.path.join(path, "readme.txt"), 'w') as readme_file:
-        readme_file.write(readme_message)
-
-    if config['backup']['redirect_model']:
-        model_name = ".".join([train_folder_name, "h5"])
-        model_name = os.path.join(path, model_name)
-        log_name = os.path.join(path, "logs")
-        print('\n\nRedirecting {} file name to {}.'.format(config['train']['saved_weights_name'], model_name))
-        print('Redirecting {} tensorborad log to {}.'.format(config['train']['tensorboard_log_dir'], log_name))
-        config['train']['saved_weights_name'] = model_name
-        config['train']['tensorboard_log_dir'] = log_name
-
-    return config
-
 def from_id_to_label_name(list_label, list_label_id):
     #list_label = ["MESCHA","VERDEUR",...]
     #list_label_id = [2,2,2]
@@ -460,9 +427,7 @@ def print_results_metrics_per_classes(class_res):
 def get_p_r_f1_global(class_metrics):
     # class_metrics = {'TP': 2434, 'FP': 283, 'FN': 80}
     l = len(class_metrics)
-    tp = 0.0
-    fp = 0.0
-    fn = 0.0    
+    tp = fp = fn = p = r = f = 0.0
     for class_bird in class_metrics:
         if class_bird['TP'] !=0 and class_bird['FP'] !=0 and class_bird['FN'] !=0:
             tp += class_bird['TP']
@@ -470,9 +435,18 @@ def get_p_r_f1_global(class_metrics):
             fn += class_bird['FN']
         else:
             l-=1
-    p = tp/(tp+fp)
-    r = tp/(tp+fn)
-    f = 2*((p*r)/(p+r))
+    if (tp+fp) != 0.0:
+        p = tp/(tp+fp)
+    else:
+        p = 0
+    if (tp+fp) != 0.0:
+        r = tp/(tp+fn)
+    else:
+        p = 0.0
+    if (p+r) != 0.0:
+        f = 2*((p*r)/(p+r))
+    else:
+        f = 0.0
     return round(p,3),round(r,3),round(f,3) 
 
 def df_to_grouped_csv(path_input_test_csv, path_input_test_per_task_csv):

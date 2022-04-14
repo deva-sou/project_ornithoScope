@@ -12,7 +12,7 @@ argparser = argparse.ArgumentParser()
 argparser.add_argument(
     '-c',
     '--conf',
-    default='config.json',
+    default='config/config_lab_mobilenetV1.json',
     help='path to configuration file')
 
 def get_info_from_one_xml(xml_path, path_raw_data, path_ornithoTasks):

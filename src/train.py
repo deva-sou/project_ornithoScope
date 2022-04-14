@@ -9,7 +9,7 @@ from tensorflow import keras
 
 from keras_yolov2.frontend import YOLO
 from keras_yolov2.preprocessing import parse_annotation_xml, parse_annotation_csv
-from keras_yolov2.utils import create_backup, enable_memory_growth
+from keras_yolov2.utils import enable_memory_growth
 
 argparser = argparse.ArgumentParser(
     description='Train and validate YOLO_v2 model on any dataset')
@@ -17,7 +17,7 @@ argparser = argparse.ArgumentParser(
 argparser.add_argument(
     '-c',
     '--conf',
-    default='config.json',
+    default='config/config_lab_mobilenetV1.json',
     help='path to configuration file')
 
 
@@ -28,44 +28,24 @@ def _main_(args):
     with open(config_path) as config_buffer:
         config = json.loads(config_buffer.read())
 
-    if config['backup']['create_backup']:
-        config = create_backup(config)
     ###############################
     #   Parse the annotations 
     ###############################
 
-    if config['parser_annotation_type'] == 'xml':
-        # parse annotations of the training set
-        train_imgs, train_labels = parse_annotation_xml(config['train']['train_annot_folder'],
-                                                        config['train']['train_image_folder'],
-                                                        config['model']['labels'])
+    # parse annotations of the training set
+    train_imgs, train_labels = parse_annotation_csv(config['train']['train_csv_file'],
+                                                    config['model']['labels'],
+                                                    config['train']['train_csv_base_path'])
 
-        # parse annotations of the validation set, if any, otherwise split the training set
-        if os.path.exists(config['valid']['valid_annot_folder']):
-            valid_imgs, valid_labels = parse_annotation_xml(config['valid']['valid_annot_folder'],
-                                                            config['valid']['valid_image_folder'],
-                                                            config['model']['labels'])
-            split = False
-        else:
-            split = True
-    elif config['parser_annotation_type'] == 'csv':
-        # parse annotations of the training set
-        train_imgs, train_labels = parse_annotation_csv(config['train']['train_csv_file'],
+    # parse annotations of the validation set, if any, otherwise split the training set
+    if os.path.exists(config['valid']['valid_csv_file']):
+        valid_imgs, valid_labels = parse_annotation_csv(config['valid']['valid_csv_file'],
                                                         config['model']['labels'],
-                                                        config['train']['train_csv_base_path'])
-
-        # parse annotations of the validation set, if any, otherwise split the training set
-        if os.path.exists(config['valid']['valid_csv_file']):
-            valid_imgs, valid_labels = parse_annotation_csv(config['valid']['valid_csv_file'],
-                                                            config['model']['labels'],
-                                                            config['valid']['valid_csv_base_path'])
-            split = False
-        else:
-            split = True
+                                                        config['valid']['valid_csv_base_path'])
+        split = False
     else:
-        raise ValueError(
-            "'parser_annotations_type' must be 'xml' or 'csv' not {}.".format(config['parser_annotations_type']))
-
+        split = True
+    
     if split:
         train_valid_split = int(0.8 * len(train_imgs))
         np.random.shuffle(train_imgs)

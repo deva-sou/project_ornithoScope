@@ -74,7 +74,7 @@ def parse_annotation_csv(csv_file, labels=[], base_path=""):
     # This is a generic parser that uses CSV files
     # File_path,xmin,ymin,xmax,ymax,class
 
-    print("parsing {} csv file can took a while, wait please.".format(csv_file))
+    #print("parsing {} csv file can took a while, wait please.".format(csv_file))
     all_imgs = []
     seen_labels = {}
 

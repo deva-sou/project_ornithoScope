@@ -18,7 +18,7 @@ argparser = argparse.ArgumentParser(
 argparser.add_argument(
     '-c',
     '--conf',
-    default='config.json',
+    default='config/config_lab_mobilenetV1.json',
     help='path to configuration file')
 
 argparser.add_argument(
