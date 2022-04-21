@@ -149,10 +149,11 @@ def _main_(args):
             print('Final results:')
             print_results_metrics_per_classes(class_res)
             print(f"Globals: P={p_global} R={r_global} F1={f1_global}\n")
+            global_results = [p_global,r_global,f1_global]
             pickle.dump(predictions, open( f"{path}/prediction_TP_FP_FN_{config['model']['backend']}_{task_name}.p", "wb" ) )
             pickle.dump(class_metrics, open( f"{path}/TP_FP_FN_{config['model']['backend']}_{task_name}.p", "wb" ) )
             pickle.dump(class_res, open( f"{path}/P_R_F1_{config['model']['backend']}_{task_name}.p", "wb" ) )
-            pickle.dump(class_res, open( f"{path}/P_R_F1_global_{config['model']['backend']}_{task_name}.p", "wb" ) )  
+            pickle.dump(global_results, open( f"{path}/P_R_F1_global_{config['model']['backend']}_{task_name}.p", "wb" ) )  
 
 if __name__ == '__main__':
     _args = argparser.parse_args()
