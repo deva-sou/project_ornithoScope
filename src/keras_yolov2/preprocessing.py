@@ -1,4 +1,5 @@
 import copy
+from email import policy
 import os
 import xml.etree.ElementTree as et
 
@@ -137,7 +138,7 @@ def parse_annotation_csv(csv_file, labels=[], base_path=""):
 
 
 class BatchGenerator(Sequence):
-    def __init__(self, images, config, shuffle=True, jitter=True, norm=None, callback=None):
+    def __init__(self, images, config, shuffle=True, jitter=True, norm=None, callback=None, policy_container='none'):
 
         self._images = images
         self._config = config
@@ -146,18 +147,39 @@ class BatchGenerator(Sequence):
         self._jitter = jitter
         self._norm = norm
         self._callback = callback
+        self._policy_container = policy_container
 
         self._anchors = [BoundBox(0, 0, config['ANCHORS'][2 * i], config['ANCHORS'][2 * i + 1])
                          for i in range(int(len(config['ANCHORS']) // 2))]
 
-        #self.policy_container = policies.PolicyContainer(policies.policies_v3())
-
+        # self.policy_container = policies.PolicyContainer(policies.policies_v3())
+        self._policy_chosen = self.get_policy_container()
+        #print(self._jitter)
         if shuffle:
             np.random.shuffle(self._images)
-
+    
     def __len__(self):
         return int(np.ceil(float(len(self._images)) / self._config['BATCH_SIZE']))
 
+    def get_policy_container(self):
+        data_aug_policies = {
+            'v0':policies.PolicyContainer(policies.policies_v0()),
+            'v1':policies.PolicyContainer(policies.policies_v1()),
+            'v2':policies.PolicyContainer(policies.policies_v2()),
+            'v3':policies.PolicyContainer(policies.policies_v3())}
+        policy_chosen = self._policy_container.lower()
+        print('\npolicy_chosen: ',policy_chosen)
+        if policy_chosen in data_aug_policies:
+            return data_aug_policies.get(policy_chosen)
+        elif policy_chosen == 'none':
+            self._jitter = False
+            return None
+        else : 
+            print("Wrong policy for data augmentation")
+            print('Choose beetween:\n')
+            print(list(data_aug_policies.keys()))
+            exit(0)
+    
     def num_classes(self):
         return len(self._config['LABELS'])
 
@@ -207,7 +229,7 @@ class BatchGenerator(Sequence):
 
         for train_instance in self._images[l_bound:r_bound]:
             # augment input image and fix object's position and size
-            img, all_objs = self.aug_image(train_instance, jitter=self._jitter)
+            img, all_objs = self.aug_image(train_instance)
 
             # if len(all_objs) == 0:
             #    print("eeee")
@@ -294,7 +316,9 @@ class BatchGenerator(Sequence):
         if self._shuffle:
             np.random.shuffle(self._images)
 
-    def aug_image(self, train_instance, jitter):
+    def aug_image(self, train_instance):
+        jitter = self._jitter
+        #print('self jitter', jitter)
         image_name = train_instance['filename']
         if self._config['IMAGE_C'] == 1:
             image = cv2.imread(image_name, cv2.IMREAD_GRAYSCALE)
@@ -311,7 +335,7 @@ class BatchGenerator(Sequence):
         h = image.shape[0]
         w = image.shape[1]
         all_objs = copy.deepcopy(train_instance['object'])
-
+        #print(jitter)
         if jitter:
             bbs = []
             labels_bbs = []
@@ -325,8 +349,8 @@ class BatchGenerator(Sequence):
                 labels_bbs.append(i)
             # REPLACE WITH AUGMENTATION FROM GOOGLE BRAIN TEAM !
             # select a random policy from the policy set
-            random_policy = self.policy_container.select_random_policy() 
-            image, bbs = self.policy_container.apply_augmentation(random_policy, image, bbs, labels_bbs)
+            random_policy = self._policy_chosen.select_random_policy() 
+            image, bbs = self._policy_chosen.apply_augmentation(random_policy, image, bbs, labels_bbs)
 
 
             all_objs = []

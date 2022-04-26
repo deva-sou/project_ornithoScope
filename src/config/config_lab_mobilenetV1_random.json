@@ -37,8 +37,6 @@
         "coord_scale":          1.0,
         "class_scale":          1.0,
 
-        "augmentation":         "v0",
-
         "saved_weights_name":   "data/saved_weights/MobileNet_random.h5"
     },
 

@@ -90,6 +90,7 @@ class YOLO(object):
               no_object_scale,
               coord_scale,
               class_scale,
+              policy,
               saved_weights_name='best_weights.h5',
               workers=3,
               max_queue_size=8,
@@ -99,7 +100,8 @@ class YOLO(object):
               train_generator_callback=None,
               iou_threshold=0.5,
               score_threshold=0.5,
-              cosine_decay=False):
+              cosine_decay=False
+              ):
 
         self._batch_size = batch_size
 
@@ -138,7 +140,8 @@ class YOLO(object):
         train_generator = BatchGenerator(train_imgs,
                                          generator_config,
                                          norm=self._feature_extractor.normalize,
-                                         callback=custom_generator_callback)
+                                         callback=custom_generator_callback,
+                                         policy_container = policy)
         valid_generator = BatchGenerator(valid_imgs,
                                          generator_config,
                                          norm=self._feature_extractor.normalize,

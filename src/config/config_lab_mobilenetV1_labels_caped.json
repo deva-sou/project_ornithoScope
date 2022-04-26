@@ -37,7 +37,7 @@
         "coord_scale":          1.0,
         "class_scale":          1.0,
 
-        "saved_weights_name":   "data/saved_weights/MobileNet_caped100.h5"
+        "saved_weights_name":   "data/saved_weights/MobileNet_caped100_with_dataAug.h5"
     },
 
     "valid": {
