@@ -1,2 +1,3 @@
 venv_ornithoscope
 src/keras_yolov2/__pycache__/*
+.DS_Store
