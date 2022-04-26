@@ -10,9 +10,18 @@
     },
 
     "data" : {
-        "base_path":            "/home/acarlier/code/data_ornithoscope/p0133_bird_data/raw_data/", 
-        "train_csv_file":       "data/input_randomized/input_train_random.csv",
-        "test_csv_file":        ["data/input_randomized/input_test_random.csv"], 
+        "base_path":            "../data_ornithoscope/test_data_aug", 
+        "train_csv_file":       "data/input_test_data_aug/input_data_augmentation.csv",
+        "test_csv_file":        [
+                                "data/input_test_per_tasks/task_2021-03-01_09.csv",
+                                "data/input_test_per_tasks/task_21-01-2021.csv",
+                                "data/input_test_per_tasks/task_2021-03-01_10.csv",
+                                "data/input_test_per_tasks/task_20210526_UPS.csv",
+                                "data/input_test_per_tasks/task_20210611_Lab.csv",
+                                "data/input_test_per_tasks/task_20210612_1_Lab.csv",
+                                "data/input_test_per_tasks/task_20210705-07_balacet.csv",
+                                "data/input_test_per_tasks/task_20211204_Orlu.csv"
+                                ], 
         "saved_weight_path":    "data/saved_weights/",
         "saved_pickles_path":   "data/pickles"
     },
@@ -20,7 +29,7 @@
     "train": {
         "callback":             null,
         "train_times":          1,
-        "pretrained_weights":   "data/saved_weights/MobileNet_random_bestLoss.h5",
+        "pretrained_weights":   "",
         "batch_size":           16,
         "learning_rate":        1e-3,
         "nb_epochs":            100,
@@ -37,9 +46,7 @@
         "coord_scale":          1.0,
         "class_scale":          1.0,
 
-        "augmentation":         "v0",
-
-        "saved_weights_name":   "data/saved_weights/MobileNet_random.h5"
+        "saved_weights_name":   "data/saved_weights/MobileNet_data_augmentation.h5"
     },
 
     "valid": {
