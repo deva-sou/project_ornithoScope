@@ -118,7 +118,8 @@ def _main_(args):
                iou_threshold=config['valid']['iou_threshold'],
                score_threshold=config['valid']['score_threshold'],
                cosine_decay=config['train']['cosine_decay'],
-               policy=config['train']['augmentation'])
+               policy=config['train']['augmentation'],
+               saved_pickles_path = config['data']['saved_pickles_path'])
 
 
 if __name__ == '__main__':

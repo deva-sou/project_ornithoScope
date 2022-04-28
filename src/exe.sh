@@ -1,0 +1,3 @@
+python3 train.py -c config/data_aug_policies/config_lab_mobilenetV1_labels_caped300_data_augv3.json
+python3 train.py -c config/data_aug_policies/config_lab_mobilenetV1_labels_full_data_augv0.json
+python3 train.py -c config/data_aug_policies/config_lab_mobilenetV1_labels_full_data_augv1.json

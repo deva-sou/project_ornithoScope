@@ -3,6 +3,7 @@ import sys
 
 import cv2
 import numpy as np
+import pickle
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard, ReduceLROnPlateau
 from tensorflow.keras.layers import Reshape, Conv2D, Input
 from tensorflow.keras.models import Model
@@ -91,6 +92,7 @@ class YOLO(object):
               coord_scale,
               class_scale,
               policy,
+              saved_pickles_path,
               saved_weights_name='best_weights.h5',
               workers=3,
               max_queue_size=8,
@@ -111,7 +113,7 @@ class YOLO(object):
         self._class_scale = class_scale
 
         self._debug = 0
-
+        self._saved_pickles_path = saved_pickles_path
         #######################################
         # Make train and validation generators
         #######################################
@@ -218,7 +220,7 @@ class YOLO(object):
         # Start the training process
         #############################
 
-        self._model.fit_generator(generator=train_generator,
+        history = self._model.fit_generator(generator=train_generator,
                                   steps_per_epoch=len(train_generator) * train_times,
                                   epochs=warmup_epochs + nb_epochs,
                                   validation_data=valid_generator,
@@ -226,6 +228,8 @@ class YOLO(object):
                                   callbacks=callbacks,
                                   workers=workers,
                                   max_queue_size=max_queue_size)
+        
+        pickle.dump(history, open( f"{self._saved_pickles_path}/history/history_{root + '_bestLoss' + ext}.p", "wb" ) )
 
     def predict(self, image, iou_threshold=0.5, score_threshold=0.5):
 

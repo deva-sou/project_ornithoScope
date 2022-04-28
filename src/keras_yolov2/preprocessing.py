@@ -337,6 +337,7 @@ class BatchGenerator(Sequence):
         all_objs = copy.deepcopy(train_instance['object'])
         #print(jitter)
         if jitter:
+            #print('jitter true')
             bbs = []
             labels_bbs = []
             for i, obj in enumerate(all_objs):
@@ -346,7 +347,7 @@ class BatchGenerator(Sequence):
                 ymax = obj['ymax']
                 # use label field to later match it with final boxes
                 bbs.append([xmin, ymin, xmax, ymax])
-                labels_bbs.append(i)
+                labels_bbs.append(self._config['LABELS'].index(obj['name']))
             # REPLACE WITH AUGMENTATION FROM GOOGLE BRAIN TEAM !
             # select a random policy from the policy set
             random_policy = self._policy_chosen.select_random_policy() 

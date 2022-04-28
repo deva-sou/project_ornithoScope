@@ -12,6 +12,14 @@ pip install -r requirements.txt
 
 ```
 
+# Setup organisation des dossiers
+
+<img src="src/data/imgs_readme/tree0.png"
+     alt=""
+     style=""/>
+
+</br>
+
 # Historique
 Problématique métier : détection d'oiseaux assisté par Deep Learning déployé sur Raspberry Pi.
 
@@ -68,3 +76,10 @@ Problématique métier : détection d'oiseaux assisté par Deep Learning déploy
 
 Différents batchsizes (1 et 4)
 Différents train time (1 et 4)
+
+# Lignes de commandes utiles
+```
+export CUDA_VISIBLE_DEVICES=0,1
+CUDA_VISIBLE_DEVICES=0, python3 train.py
+CUDA_VISIBLE_DEVICES=1, python3 evaluate.py
+```

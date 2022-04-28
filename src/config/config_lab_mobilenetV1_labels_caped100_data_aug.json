@@ -20,7 +20,7 @@
     "train": {
         "callback":             null,
         "train_times":          4,
-        "pretrained_weights":   "",
+        "pretrained_weights":   "data/saved_weights/MobileNet_caped100_nodataAug_test_bestLoss.h5",
         "batch_size":           16,
         "learning_rate":        1e-3,
         "nb_epochs":            100,
@@ -39,7 +39,7 @@
 
         "augmentation":         "v0",
 
-        "saved_weights_name":   "data/saved_weights/MobileNet_caped100_data_aug.h5"
+        "saved_weights_name":   "data/saved_weights/MobileNet_caped100_nodataAug_test.h5"
     },
 
     "valid": {
