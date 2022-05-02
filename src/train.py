@@ -38,20 +38,19 @@ def _main_(args):
                                                     config['data']['base_path'])
 
     # parse annotations of the validation set, if any, otherwise split the training set
-    validation_paths = config['data']['test_csv_file']
+    valid_path = config['data']['valid_csv_file']
 
-    for valid_path in validation_paths:
-            if os.path.exists(valid_path):
-                print(f"\n \nParsing {valid_path.split('/')[-1]}")
-                valid_imgs, seen_valid_labels = parse_annotation_csv(valid_path,
-                                                                config['model']['labels'],
-                                                                config['data']['base_path'])
-                split = False
-            else:
-                split = True
+    if os.path.exists(valid_path):
+        print(f"\n \nParsing {valid_path.split('/')[-1]}")
+        valid_imgs, seen_valid_labels = parse_annotation_csv(valid_path,
+                                                        config['model']['labels'],
+                                                        config['data']['base_path'])
+        split = False
+    else:
+        split = True
 
     if split:
-        train_valid_split = int(0.7 * len(train_imgs))
+        train_valid_split = int(0.85 * len(train_imgs))
         np.random.shuffle(train_imgs)
 
         valid_imgs = train_imgs[train_valid_split:]

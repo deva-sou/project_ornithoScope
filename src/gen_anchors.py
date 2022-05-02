@@ -113,16 +113,11 @@ def main(args):
     with open(config_path) as config_buffer:
         config = json.loads(config_buffer.read())
 
-    if config['parser_annotation_type'] == 'xml':
-        # parse annotations of the training set
-        train_imgs, train_labels = parse_annotation_xml(config['train']['train_annot_folder'], 
-                                                        config['train']['train_image_folder'],
-                                                        config['model']['labels'])
-    elif config['parser_annotation_type'] == 'csv':
-        # parse annotations of the training set
-        train_imgs, train_labels = parse_annotation_csv(config['train']['train_csv_file'],
-                                                        config['model']['labels'],
-                                                        config['train']['train_csv_base_path'])
+
+    # parse annotations of the training set
+    train_imgs, train_labels = parse_annotation_csv(config['data']['train_csv_file'],
+                                                    config['model']['labels'],
+                                                    config['data']['base_path'])
 
     input_size = (config['model']['input_size_h'], config['model']['input_size_w'], 3)
     feature_extractor = import_feature_extractor(config['model']['backend'], input_size)
@@ -132,8 +127,8 @@ def main(args):
     # run k_mean to find the anchors
     annotation_dims = []
     for image in train_imgs:
-        cell_w = image['width']/grid_w
-        cell_h = image['height']/grid_h
+        cell_w = float(image['width'])/grid_w
+        cell_h = float(image['height'])/grid_h
 
         for obj in image['object']:
             relative_w = (float(obj['xmax']) - float(obj['xmin']))/cell_w

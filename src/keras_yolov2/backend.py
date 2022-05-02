@@ -8,13 +8,13 @@ from tensorflow.keras.applications.vgg16 import VGG16
 from tensorflow.keras.layers import Activation, Conv2D, Input, MaxPooling2D, BatchNormalization, Lambda, LeakyReLU, \
     concatenate
 
-base_path = './backend_weights/'  # FIXME :: use environment variables
+base_path = './data/saved_weights/'  # FIXME :: use environment variables
 
 FULL_YOLO_BACKEND_PATH = base_path + "full_yolo_backend.h5"  # should be hosted on a server
 TINY_YOLO_BACKEND_PATH = base_path + "tiny_yolo_backend.h5"  # should be hosted on a server
 SQUEEZENET_BACKEND_PATH = base_path + "squeezenet_backend.h5"  # should be hosted on a server
-MOBILENET_BACKEND_PATH = base_path + "mobilenet_backend.h5"  # should be hosted on a server
-MOBILENET2_BACKEND_PATH = base_path + "mobilenet_v2_imagenet.h5"  # should be hosted on a server
+MOBILENET_BACKEND_PATH = base_path + "transfert_learning/mobilenet_imagenet.h5"  # should be hosted on a server
+MOBILENET2_BACKEND_PATH = base_path + "transfert_learning/mobilenet_v2_imagenet.h5"  # should be hosted on a server
 INCEPTION3_BACKEND_PATH = base_path + "inception_backend.h5"  # should be hosted on a server
 VGG16_BACKEND_PATH = base_path + "vgg16_backend.h5"  # should be hosted on a server
 RESNET50_BACKEND_PATH = base_path + "resnet50_backend.h5"  # should be hosted on a server

@@ -64,7 +64,7 @@ def _main_(args):
                                         norm=feature_extractor.normalize,
                                         policy_container = config['train']['augmentation'])
     for i in range(10):
-        img, all_objs = train_generator.aug_image(imgs[0])
+        img, all_objs = train_generator.aug_image(imgs[i])
         fig, ax = plt.subplots()
         plt.imshow(img)
         for obj in all_objs:
