@@ -50,7 +50,7 @@ def _main_(args):
         split = True
 
     if split:
-        train_valid_split = int(0.85 * len(train_imgs))
+        train_valid_split = int(0.95 * len(train_imgs))
         np.random.shuffle(train_imgs)
 
         valid_imgs = train_imgs[train_valid_split:]
@@ -82,7 +82,8 @@ def _main_(args):
                 input_size=(config['model']['input_size_h'], config['model']['input_size_w']),
                 labels=config['model']['labels'],
                 anchors=config['model']['anchors'],
-                gray_mode=config['model']['gray_mode'])
+                gray_mode=config['model']['gray_mode'],
+                freeze=config['train']['freeze'])
 
     #########################################
     #   Load the pretrained weights (if any) 

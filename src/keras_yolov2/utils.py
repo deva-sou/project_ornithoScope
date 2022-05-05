@@ -252,23 +252,23 @@ def import_dynamically(name):
     return mod
 
 
-def import_feature_extractor(backend, input_size):
+def import_feature_extractor(backend, input_size, freeze=False):
     if backend == 'Inception3':
-        feature_extractor = Inception3Feature(input_size)
+        feature_extractor = Inception3Feature(input_size, freeze=freeze)
     elif backend == 'SqueezeNet':
-        feature_extractor = SqueezeNetFeature(input_size)
+        feature_extractor = SqueezeNetFeature(input_size, freeze=freeze)
     elif backend == 'MobileNet':
-        feature_extractor = MobileNetFeature(input_size)
+        feature_extractor = MobileNetFeature(input_size, freeze=freeze)
     elif backend == 'MobileNetV2':
-        feature_extractor = MobileNetV2Feature(input_size)
+        feature_extractor = MobileNetV2Feature(input_size, freeze=freeze)
     elif backend == 'Full Yolo':
-        feature_extractor = FullYoloFeature(input_size)
+        feature_extractor = FullYoloFeature(input_size, freeze=freeze)
     elif backend == 'Tiny Yolo':
-        feature_extractor = TinyYoloFeature(input_size)
+        feature_extractor = TinyYoloFeature(input_size, freeze=freeze)
     elif backend == 'VGG16':
-        feature_extractor = VGG16Feature(input_size)
+        feature_extractor = VGG16Feature(input_size, freeze=freeze)
     elif backend == 'ResNet50':
-        feature_extractor = ResNet50Feature(input_size)
+        feature_extractor = ResNet50Feature(input_size, freeze=freeze)
     elif os.path.dirname(backend) != "":
         base_path = os.path.dirname(backend)
         sys.path.append(base_path)
@@ -282,7 +282,7 @@ def import_feature_extractor(backend, input_size):
     else:
         raise RuntimeError('Architecture not supported! Only support Full Yolo, Tiny Yolo, MobileNet, SqueezeNet, VGG16'
                            ', ResNet50, or Inception3 at the moment!')
-
+   
     return feature_extractor
 
 

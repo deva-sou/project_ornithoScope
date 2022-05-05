@@ -13,7 +13,8 @@ base_path = './data/saved_weights/'  # FIXME :: use environment variables
 FULL_YOLO_BACKEND_PATH = base_path + "full_yolo_backend.h5"  # should be hosted on a server
 TINY_YOLO_BACKEND_PATH = base_path + "tiny_yolo_backend.h5"  # should be hosted on a server
 SQUEEZENET_BACKEND_PATH = base_path + "squeezenet_backend.h5"  # should be hosted on a server
-MOBILENET_BACKEND_PATH = base_path + "transfert_learning/mobilenet_imagenet.h5"  # should be hosted on a server
+#MOBILENET_BACKEND_PATH = base_path + "transfert_learning/mobilenet_imagenet.h5"  # should be hosted on a server
+MOBILENET_BACKEND_PATH = base_path + "mobilenet_imagenet.h5"  # should be hosted on a server
 MOBILENET2_BACKEND_PATH = base_path + "transfert_learning/mobilenet_v2_imagenet.h5"  # should be hosted on a server
 INCEPTION3_BACKEND_PATH = base_path + "inception_backend.h5"  # should be hosted on a server
 VGG16_BACKEND_PATH = base_path + "vgg16_backend.h5"  # should be hosted on a server
@@ -41,7 +42,7 @@ class BaseFeatureExtractor(object):
 class FullYoloFeature(BaseFeatureExtractor):
     """docstring for ClassName"""
 
-    def __init__(self, input_size):
+    def __init__(self, input_size, freeze):
         input_image = Input(shape=input_size)
 
         # the function to implement the orgnization layer (thanks to github.com/allanzelener/YAD2K)
@@ -171,6 +172,8 @@ class FullYoloFeature(BaseFeatureExtractor):
         x = LeakyReLU(alpha=0.1)(x)
 
         self.feature_extractor = Model(input_image, x, name='Full_YOLO_backend')
+        self.feature_extractor.trainable = not freeze
+
         if input_size[2] == 3:
             try:
                 print("Loading pretrained weights: " + FULL_YOLO_BACKEND_PATH)
@@ -187,7 +190,7 @@ class FullYoloFeature(BaseFeatureExtractor):
 class TinyYoloFeature(BaseFeatureExtractor):
     """docstring for ClassName"""
 
-    def __init__(self, input_size):
+    def __init__(self, input_size, freeze):
         input_image = Input(shape=input_size)
 
         # Layer 1
@@ -217,6 +220,7 @@ class TinyYoloFeature(BaseFeatureExtractor):
             x = LeakyReLU(alpha=0.1)(x)
 
         self.feature_extractor = Model(input_image, x, name='Tiny_YOLO_backend')
+        self.feature_extractor.trainable = not freeze
         if input_size[2] == 3:
             try:
                 print("Loading pretrained weights: " + TINY_YOLO_BACKEND_PATH)
@@ -233,7 +237,7 @@ class TinyYoloFeature(BaseFeatureExtractor):
 class MobileNetFeature(BaseFeatureExtractor):
     """docstring for ClassName"""
 
-    def __init__(self, input_size):
+    def __init__(self, input_size, freeze):
         input_image = Input(shape=input_size)
 
         mobilenet = MobileNet(input_shape=input_size, include_top=False)
@@ -249,7 +253,8 @@ class MobileNetFeature(BaseFeatureExtractor):
         x = mobilenet(input_image)
 
         self.feature_extractor = Model(input_image, x, name='MobileNet_backend')
-
+        self.feature_extractor.trainable = not freeze
+        
     def normalize(self, image):
         image = image / 255.
         image = image - 0.5
@@ -260,7 +265,7 @@ class MobileNetFeature(BaseFeatureExtractor):
 class MobileNetV2Feature(BaseFeatureExtractor):
     """docstring for ClassName"""
 
-    def __init__(self, input_size):
+    def __init__(self, input_size, freeze):
         input_image = Input(shape=input_size)
 
         mobilenet2 = MobileNetV2(input_shape=input_size, include_top=False)
@@ -276,6 +281,7 @@ class MobileNetV2Feature(BaseFeatureExtractor):
         x = mobilenet2(input_image)
 
         self.feature_extractor = Model(input_image, x, name='MobileNetv2_backend')
+        self.feature_extractor.trainable = not freeze
 
     def normalize(self, image):
         image = image / 255.
@@ -287,7 +293,7 @@ class MobileNetV2Feature(BaseFeatureExtractor):
 class SqueezeNetFeature(BaseFeatureExtractor):
     """docstring for ClassName"""
 
-    def __init__(self, input_size):
+    def __init__(self, input_size, freeze):
 
         # define some auxiliary variables and the fire module
         sq1x1 = "squeeze1x1"
@@ -332,6 +338,7 @@ class SqueezeNetFeature(BaseFeatureExtractor):
         x = fire_module(x, fire_id=9, squeeze=64, expand=256)
 
         self.feature_extractor = Model(input_image, x, name='SqueezeNet_backend')
+        self.feature_extractor.trainable = not freeze
         if input_size[2] == 3:
             try:
                 self.feature_extractor.load_weights(SQUEEZENET_BACKEND_PATH)
@@ -354,7 +361,7 @@ class SqueezeNetFeature(BaseFeatureExtractor):
 class Inception3Feature(BaseFeatureExtractor):
     """docstring for ClassName"""
 
-    def __init__(self, input_size):
+    def __init__(self, input_size, freeze):
         input_image = Input(shape=input_size)
 
         inception = InceptionV3(input_shape=input_size, include_top=False)
@@ -369,6 +376,7 @@ class Inception3Feature(BaseFeatureExtractor):
         x = inception(input_image)
 
         self.feature_extractor = Model(input_image, x, name='Inception3_backend')
+        self.feature_extractor.trainable = not freeze
 
     def normalize(self, image):
         image = image / 255.
@@ -381,11 +389,12 @@ class Inception3Feature(BaseFeatureExtractor):
 class VGG16Feature(BaseFeatureExtractor):
     """docstring for ClassName"""
 
-    def __init__(self, input_size):
+    def __init__(self, input_size, freeze):
         vgg16 = VGG16(input_shape=input_size, include_top=False)
         # vgg16.load_weights(VGG16_BACKEND_PATH)
 
         self.feature_extractor = vgg16
+        self.feature_extractor.trainable = not freeze
 
     def normalize(self, image):
         image = image[..., ::-1]
@@ -401,12 +410,13 @@ class VGG16Feature(BaseFeatureExtractor):
 class ResNet50Feature(BaseFeatureExtractor):
     """docstring for ClassName"""
 
-    def __init__(self, input_size):
+    def __init__(self, input_size, freeze):
         resnet50 = ResNet50(input_shape=input_size, include_top=False)
         resnet50.layers.pop()  # remove the average pooling layer
         # resnet50.load_weights(RESNET50_BACKEND_PATH)
 
         self.feature_extractor = Model(resnet50.layers[0].input, resnet50.layers[-1].output)
+        self.feature_extractor.trainable = not freeze
 
     def normalize(self, image):
         image = image[..., ::-1]

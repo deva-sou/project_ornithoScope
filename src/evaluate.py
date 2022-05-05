@@ -105,6 +105,7 @@ def _main_(args):
 
      # parse annotations of the validation set, if any.
     validation_paths = config['data']['test_csv_file']
+    print(validation_paths)
     directory_name = f"{config['model']['backend']}_{datetime.today().strftime('%Y-%m-%d-%H:%M:%S')}"
     print("Directory name for metrics: ", directory_name)
     parent_dir = config['data']['saved_pickles_path']

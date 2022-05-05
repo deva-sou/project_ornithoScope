@@ -17,7 +17,7 @@ from .yolo_loss import YoloLoss
 
 
 class YOLO(object):
-    def __init__(self, backend, input_size, labels, anchors, gray_mode=False):
+    def __init__(self, backend, input_size, labels, anchors, gray_mode=False, freeze=False):
 
         self._input_size = input_size
         self._gray_mode = gray_mode
@@ -25,6 +25,7 @@ class YOLO(object):
         self._nb_class = len(self.labels)
         self._nb_box = len(anchors) // 2
         self._anchors = anchors
+        self._freeze = freeze
 
         ##########################
         # Make the model
@@ -38,7 +39,10 @@ class YOLO(object):
             self._input_size = (self._input_size[0], self._input_size[1], 3)
             input_image = Input(shape=self._input_size)
 
-        self._feature_extractor = import_feature_extractor(backend, self._input_size)
+
+        self._feature_extractor = import_feature_extractor(backend, self._input_size, self._freeze)
+               
+        
         print(self._feature_extractor.feature_extractor.summary())
         print(self._feature_extractor.get_output_shape())
         self._grid_h, self._grid_w = self._feature_extractor.get_output_shape()
