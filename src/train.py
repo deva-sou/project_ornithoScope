@@ -38,20 +38,19 @@ def _main_(args):
                                                     config['data']['base_path'])
 
     # parse annotations of the validation set, if any, otherwise split the training set
-    validation_paths = config['data']['test_csv_file']
+    valid_path = config['data']['valid_csv_file']
 
-    for valid_path in validation_paths:
-            if os.path.exists(valid_path):
-                print(f"\n \nParsing {valid_path.split('/')[-1]}")
-                valid_imgs, seen_valid_labels = parse_annotation_csv(valid_path,
-                                                                config['model']['labels'],
-                                                                config['data']['base_path'])
-                split = False
-            else:
-                split = True
+    if os.path.exists(valid_path):
+        print(f"\n \nParsing {valid_path.split('/')[-1]}")
+        valid_imgs, seen_valid_labels = parse_annotation_csv(valid_path,
+                                                        config['model']['labels'],
+                                                        config['data']['base_path'])
+        split = False
+    else:
+        split = True
 
     if split:
-        train_valid_split = int(0.7 * len(train_imgs))
+        train_valid_split = int(0.85 * len(train_imgs))
         np.random.shuffle(train_imgs)
 
         valid_imgs = train_imgs[train_valid_split:]
@@ -83,7 +82,8 @@ def _main_(args):
                 input_size=(config['model']['input_size_h'], config['model']['input_size_w']),
                 labels=config['model']['labels'],
                 anchors=config['model']['anchors'],
-                gray_mode=config['model']['gray_mode'])
+                gray_mode=config['model']['gray_mode'],
+                freeze=config['train']['freeze'])
 
     #########################################
     #   Load the pretrained weights (if any) 
@@ -117,7 +117,9 @@ def _main_(args):
                train_generator_callback=config['train']['callback'],
                iou_threshold=config['valid']['iou_threshold'],
                score_threshold=config['valid']['score_threshold'],
-               cosine_decay=config['train']['cosine_decay'])
+               cosine_decay=config['train']['cosine_decay'],
+               policy=config['train']['augmentation'],
+               saved_pickles_path = config['data']['saved_pickles_path'])
 
 
 if __name__ == '__main__':

@@ -59,11 +59,12 @@ def _main_(args):
             'BATCH_SIZE': config['train']['batch_size']
         }                                       
                                                     
-    train_generator = BatchGenerator(imgs, 
+    train_generator = BatchGenerator(   imgs, 
                                         generator_config, 
-                                        norm=feature_extractor.normalize)
-    for i in range(20):
-        img, all_objs = train_generator.aug_image(imgs[0], True)
+                                        norm=feature_extractor.normalize,
+                                        policy_container = config['train']['augmentation'])
+    for i in range(10):
+        img, all_objs = train_generator.aug_image(imgs[i])
         fig, ax = plt.subplots()
         plt.imshow(img)
         for obj in all_objs:

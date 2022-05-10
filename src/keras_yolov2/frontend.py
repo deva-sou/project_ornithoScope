@@ -3,6 +3,7 @@ import sys
 
 import cv2
 import numpy as np
+import pickle
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard, ReduceLROnPlateau
 from tensorflow.keras.layers import Reshape, Conv2D, Input
 from tensorflow.keras.models import Model
@@ -16,7 +17,7 @@ from .yolo_loss import YoloLoss
 
 
 class YOLO(object):
-    def __init__(self, backend, input_size, labels, anchors, gray_mode=False):
+    def __init__(self, backend, input_size, labels, anchors, gray_mode=False, freeze=False):
 
         self._input_size = input_size
         self._gray_mode = gray_mode
@@ -24,6 +25,7 @@ class YOLO(object):
         self._nb_class = len(self.labels)
         self._nb_box = len(anchors) // 2
         self._anchors = anchors
+        self._freeze = freeze
 
         ##########################
         # Make the model
@@ -37,7 +39,10 @@ class YOLO(object):
             self._input_size = (self._input_size[0], self._input_size[1], 3)
             input_image = Input(shape=self._input_size)
 
-        self._feature_extractor = import_feature_extractor(backend, self._input_size)
+
+        self._feature_extractor = import_feature_extractor(backend, self._input_size, self._freeze)
+               
+        
         print(self._feature_extractor.feature_extractor.summary())
         print(self._feature_extractor.get_output_shape())
         self._grid_h, self._grid_w = self._feature_extractor.get_output_shape()
@@ -90,6 +95,8 @@ class YOLO(object):
               no_object_scale,
               coord_scale,
               class_scale,
+              policy,
+              saved_pickles_path,
               saved_weights_name='best_weights.h5',
               workers=3,
               max_queue_size=8,
@@ -99,7 +106,8 @@ class YOLO(object):
               train_generator_callback=None,
               iou_threshold=0.5,
               score_threshold=0.5,
-              cosine_decay=False):
+              cosine_decay=False
+              ):
 
         self._batch_size = batch_size
 
@@ -109,7 +117,7 @@ class YOLO(object):
         self._class_scale = class_scale
 
         self._debug = 0
-
+        self._saved_pickles_path = saved_pickles_path
         #######################################
         # Make train and validation generators
         #######################################
@@ -138,7 +146,8 @@ class YOLO(object):
         train_generator = BatchGenerator(train_imgs,
                                          generator_config,
                                          norm=self._feature_extractor.normalize,
-                                         callback=custom_generator_callback)
+                                         callback=custom_generator_callback,
+                                         policy_container = policy)
         valid_generator = BatchGenerator(valid_imgs,
                                          generator_config,
                                          norm=self._feature_extractor.normalize,
@@ -215,7 +224,7 @@ class YOLO(object):
         # Start the training process
         #############################
 
-        self._model.fit_generator(generator=train_generator,
+        history = self._model.fit_generator(generator=train_generator,
                                   steps_per_epoch=len(train_generator) * train_times,
                                   epochs=warmup_epochs + nb_epochs,
                                   validation_data=valid_generator,
@@ -223,6 +232,8 @@ class YOLO(object):
                                   callbacks=callbacks,
                                   workers=workers,
                                   max_queue_size=max_queue_size)
+        
+        pickle.dump(history, open( f"{self._saved_pickles_path}/history/history_{root + '_bestLoss' + ext}.p", "wb" ) )
 
     def predict(self, image, iou_threshold=0.5, score_threshold=0.5):
 

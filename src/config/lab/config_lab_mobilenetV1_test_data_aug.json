@@ -1,0 +1,59 @@
+{
+    "model" : {
+        "backend":              "MobileNet",
+        "input_size_w":         224,
+        "input_size_h":         224,
+        "gray_mode":            false,
+        "anchors":              [5.49950,8.57597, 9.26930,17.66783, 10.56113,10.43321, 15.44298,23.17856, 34.00303,34.41259],
+        "labels":               ["MESCHA", "SITTOR", "MESBLE", "MESNON", "PINARB", "ACCMOU", "ROUGOR", "VEREUR", "MOIDOM", "TOUTUR", "ECUROU", "PIEBAV", "MULGRI", "CAMPAG", "MESNOI", "MESHUP"],
+        "unwanted_labels":      ["noBird", "unknown"]
+    },
+
+    "data" : {
+        "base_path":            "/home/acarlier/code/data_ornithoscope/test_data_aug", 
+        "train_csv_file":       "data/input_test_data_aug/input_data_augmentation.csv",
+        "test_csv_file":        [
+                                "data/input_test_per_tasks/task_2021-03-01_09.csv",
+                                "data/input_test_per_tasks/task_21-01-2021.csv",
+                                "data/input_test_per_tasks/task_2021-03-01_10.csv",
+                                "data/input_test_per_tasks/task_20210526_UPS.csv",
+                                "data/input_test_per_tasks/task_20210611_Lab.csv",
+                                "data/input_test_per_tasks/task_20210612_1_Lab.csv",
+                                "data/input_test_per_tasks/task_20210705-07_balacet.csv",
+                                "data/input_test_per_tasks/task_20211204_Orlu.csv"
+                                ], 
+        "saved_weight_path":    "data/saved_weights/",
+        "saved_pickles_path":   "data/pickles"
+    },
+
+    "train": {
+        "callback":             null,
+        "train_times":          1,
+        "pretrained_weights":   "",
+        "batch_size":           16,
+        "learning_rate":        1e-3,
+        "nb_epochs":            100,
+        "warmup_epochs":        0,
+
+        "workers":              12,
+        "max_queue_size":       40,
+        "early_stop":           false,
+        "cosine_decay":         true,
+        "tensorboard_log_dir":  "./logs/1",
+
+        "object_scale":         5.0 ,
+        "no_object_scale":      1.0,
+        "coord_scale":          1.0,
+        "class_scale":          1.0,
+
+        "augmentation":         "v12",
+
+        "saved_weights_name":   "data/saved_weights/MobileNet_data_augmentation.h5"
+    },
+
+    "valid": {
+        "iou_threshold":        0.7,
+        "score_threshold":      0.5,
+        "valid_times":          1
+    }
+}
