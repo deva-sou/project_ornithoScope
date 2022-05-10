@@ -14,7 +14,7 @@ pip install -r requirements.txt
 
 # Setup organisation des dossiers
 
-<img src="src/data/imgs_readme/tree0.png"
+<img src="src/data/img_for_readme/tree0.png"
      alt=""
      style=""/>
 
