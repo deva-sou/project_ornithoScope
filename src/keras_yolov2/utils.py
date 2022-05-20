@@ -133,7 +133,7 @@ def decode_netout(netout, anchors, nb_class, obj_threshold=0.5, nms_threshold=0.
 
                     box = BoundBox(x - w / 2, y - h / 2, x + w / 2, y + h / 2, confidence, classes)
                     boxes.append(box)
-    #print(boxes)
+    print(boxes)
     # suppress non-maximal boxes
     for c in range(nb_class):
         sorted_indices = list(reversed(np.argsort([box.classes[c] for box in boxes])))
@@ -153,7 +153,7 @@ def decode_netout(netout, anchors, nb_class, obj_threshold=0.5, nms_threshold=0.
 
     # remove the boxes which are less likely than a obj_threshold
     boxes = [box for box in boxes if box.get_score() > obj_threshold]
-    #print(boxes)
+    print(boxes)
     return boxes
 
 
