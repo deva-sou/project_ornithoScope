@@ -14,11 +14,19 @@ pip install -r requirements.txt
 
 # Setup organisation des dossiers
 
-<img src="src/data/img_for_readme/tree0.png"
+<img src="src/data/imgs/img_for_readme/tree0.png"
      alt=""
      style=""/>
 
 </br>
+
+# Exécution des fichiers
+```
+python3 train.py -c path_custom_config.json
+python3 evaluate.py -c path_custom_config.json
+python3 predict.py -c path_custom_config.json -w path_seleccted_weights.h5 -i path_image_folder_to_predict
+```
+
 
 # Historique
 Problématique métier : détection d'oiseaux assisté par Deep Learning déployé sur Raspberry Pi.

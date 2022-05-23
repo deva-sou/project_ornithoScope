@@ -21,8 +21,8 @@
     "train": {
         "callback":             null,
         "train_times":          4,
-        "pretrained_weights":   "data/saved_weights/data_aug_policies/MobileNet_caped300_data_aug_v2_cleaned_data_bestLoss.h5",
-        "freeze":               true,
+        "pretrained_weights":   "",
+        "freeze":               false,
         "batch_size":           16,
         "learning_rate":        1e-3,
         "nb_epochs":            100,
