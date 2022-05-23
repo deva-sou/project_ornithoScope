@@ -13,7 +13,7 @@
         "base_path":            "/home/acarlier/code/data_ornithoscope/p0133_bird_data/raw_data/", 
         "train_csv_file":       "data/inputs/raw_data/cleaned_labels/input_train_caped300_cleaned.csv",
         "valid_csv_file":       "",
-        "test_csv_file":        ["data/inputs/raw_data/cleaned_labels/input_test_cleaned.csv"], 
+        "test_csv_file":        ["data/inputs/input_test.csv"], 
         "saved_weight_path":    "data/saved_weights/",
         "saved_pickles_path":   "data/pickles"
     },
@@ -39,7 +39,7 @@
         "coord_scale":          1.0,
         "class_scale":          1.0,
 
-        "augmentation":         "v2",
+        "augmentation":         "v0",
 
         "saved_weights_name":   "data/saved_weights/data_aug_policies/MobileNet_caped300_data_aug_v2_cleaned_data.h5"
     },
