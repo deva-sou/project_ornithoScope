@@ -8,6 +8,7 @@ import argparse
 import json
 import cv2
 import os
+import csv
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -39,12 +40,19 @@ argparser.add_argument(
     '--input',
     help='path to an image or an video (mp4 format)')
 
+argparser.add_argument(
+    '-o',
+    '--output',
+    default='img',
+    help='Output format, img (default) or csv')
 
 def _main_(args):
     config_path = args.conf
     weights_path = args.weights
     image_path = args.input
     use_camera = args.real_time
+    output_format = args.output
+
 
     videos_format = [".mp4", "avi"]
     enable_memory_growth()
@@ -125,17 +133,52 @@ def _main_(args):
 
             print(len(boxes), 'boxes are found')
             cv2.imwrite(image_path[:-4] + '_detected' + image_path[-4:], image)
+        
+        # else:
+        #     detected_images_path = os.path.join(image_path, "detected")
+        #     if not os.path.exists(detected_images_path):
+        #         os.mkdir(detected_images_path)
+        #     images = list(list_images(image_path))
+        #     for fname in tqdm(images):
+        #         image = cv2.imread(fname)
+        #         boxes = yolo.predict(image)
+        #         image = draw_boxes(image, boxes, config['model']['labels'])
+        #         fname = os.path.basename(fname)
+        #         cv2.imwrite(os.path.join(image_path, "detected", fname), image)
+        
         else:
-            detected_images_path = os.path.join(image_path, "detected")
-            if not os.path.exists(detected_images_path):
-                os.mkdir(detected_images_path)
+            if output_format == 'img':
+                detected_images_path = os.path.join(image_path, "detected")
+                if not os.path.exists(detected_images_path):
+                    os.mkdir(detected_images_path)
+            elif output_format == 'csv':
+                header = ['File_path', 'xmin', 'ymin', 'xmax', 'ymax', 'presence']
+                detected_csv = os.path.join(image_path, "detected.csv")
+                # open csv file in the write mode
+                f = open(detected_csv, 'w')
+                writer = csv.writer(f)
+                writer.writerow(header)
+
             images = list(list_images(image_path))
             for fname in tqdm(images):
                 image = cv2.imread(fname)
+                print('here0')
                 boxes = yolo.predict(image)
-                image = draw_boxes(image, boxes, config['model']['labels'])
-                fname = os.path.basename(fname)
-                cv2.imwrite(os.path.join(image_path, "detected", fname), image)
+                print('here1')
+
+                if output_format == 'img':
+                    image = draw_boxes(image, boxes, config['model']['labels'])
+                    fname = os.path.basename(fname)
+                    cv2.imwrite(os.path.join(image_path, "detected", fname), image)
+                elif output_format == 'csv':
+                    for box in boxes:
+                        row = [fname, box.xmin, box.ymin, box.xmax, box.ymax, box.score]
+                        print('here')
+                        writer.writerow(row)
+                    
+            if output_format == 'csv':
+                f.close()
+        
 
 
 if __name__ == '__main__':
