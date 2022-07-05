@@ -1,4 +1,5 @@
 #! /usr/bin/env python3
+from operator import ne
 from keras_yolov2.utils import draw_boxes, enable_memory_growth
 from keras_yolov2.frontend import YOLO
 from keras_yolov2.utils import list_images
@@ -162,9 +163,7 @@ def _main_(args):
             images = list(list_images(image_path))
             for fname in tqdm(images):
                 image = cv2.imread(fname)
-                print('here0')
                 boxes = yolo.predict(image)
-                print('here1')
 
                 if output_format == 'img':
                     image = draw_boxes(image, boxes, config['model']['labels'])
@@ -172,8 +171,8 @@ def _main_(args):
                     cv2.imwrite(os.path.join(image_path, "detected", fname), image)
                 elif output_format == 'csv':
                     for box in boxes:
+                        #new_name = "task_20210705-07_balacet/{}".format(fname.split('/')[-1])
                         row = [fname, box.xmin, box.ymin, box.xmax, box.ymax, box.score]
-                        print('here')
                         writer.writerow(row)
                     
             if output_format == 'csv':
