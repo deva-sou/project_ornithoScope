@@ -237,6 +237,15 @@ class YOLO(object):
 
     def predict(self, image, iou_threshold=0.5, score_threshold=0.5):
 
+        input_image = self.resize(image)
+
+        netout = self._model.predict(input_image)[0]
+
+        boxes = decode_netout(netout, self._anchors, self._nb_class, score_threshold, iou_threshold)
+
+        return boxes
+    
+    def resize(self, image):
         if len(image.shape) == 3 and self._gray_mode:
             if image.shape[2] == 3:
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -254,12 +263,8 @@ class YOLO(object):
             input_image = image[np.newaxis, :]
         else:
             input_image = image[np.newaxis, ..., np.newaxis]
-
-        netout = self._model.predict(input_image)[0]
-
-        boxes = decode_netout(netout, self._anchors, self._nb_class, score_threshold, iou_threshold)
-
-        return boxes
+        
+        return input_image
 
     @property
     def model(self):
