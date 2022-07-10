@@ -145,6 +145,8 @@ def _main_(args):
 
       # Decode and draw boxes
       boxes = decode_netout(netout, yolo._anchors, yolo._nb_class)
+      boxes = NMS(boxes)
+      boxes = BT.update(boxes).values()
       frame = draw_boxes(frame, boxes, config['model']['labels'])
 
       # Show the date
@@ -205,6 +207,8 @@ def _main_(args):
 
       # Decode and draw boxes
       boxes = decode_netout(netout, yolo._anchors, yolo._nb_class)
+      boxes = NMS(boxes)
+      boxes = BT.update(boxes).values()
       frame = draw_boxes(frame, boxes, config['model']['labels'])
 
       # Write video output
