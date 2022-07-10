@@ -3,6 +3,7 @@ from operator import ne
 from keras_yolov2.utils import draw_boxes, enable_memory_growth
 from keras_yolov2.frontend import YOLO
 from keras_yolov2.utils import list_images
+from keras_yolov2.tracker import BoxTracker, NMS
 from tqdm import tqdm
 import numpy as np
 import argparse
@@ -10,6 +11,8 @@ import json
 import cv2
 import os
 import csv
+import time
+import datetime
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -55,14 +58,14 @@ def _main_(args):
     output_format = args.output
 
 
-    videos_format = [".mp4", "avi"]
+    videos_format = ['.mp4', 'avi']
     enable_memory_growth()
 
     with open(config_path) as config_buffer:
         config = json.load(config_buffer)
 
     if weights_path == '':
-        weights_path = config['train']['pretrained_weights"']
+        weights_path = config['train']['pretrained_weights']
 
     ###################
     #   Make the model 
@@ -84,21 +87,56 @@ def _main_(args):
     #   Predict bounding boxes
     ###########################
 
+    BT = BoxTracker()
+
     if use_camera:
         video_reader = cv2.VideoCapture(int(image_path))
-        pbar = tqdm()
+        
+        # Variables to calculate FPS
+        start_time = time.time()
+        counter, fps = 0, 0
+        fps_avg_frame_count = 10
+
         while True:
-            pbar.update(1)
+            counter += 1
+
+            # Read camera image
             ret, frame = video_reader.read()
             if not ret:
                 break
+
+            # Predict frame's boxes
             boxes = yolo.predict(frame)
+            boxes = NMS(boxes)
+            boxes = BT.update(boxes).values()
+
+            # Draw boxes
             frame = draw_boxes(frame, boxes, config['model']['labels'])
+
+            # Show the date
+            current_time = str(datetime.datetime.utcfromtimestamp(int(time.time())))
+            cv2.putText(frame, current_time, (20, 20), cv2.FONT_HERSHEY_PLAIN,
+                1, (0, 255, 0), 2)
+
+            # Calculate the FPS
+            if counter % fps_avg_frame_count == 0:
+                end_time = time.time()
+                fps = fps_avg_frame_count / (end_time - start_time)
+                start_time = time.time()
+            
+            # Show the FPS
+            fps_text = '{:02.1f} fps'.format(fps)
+            cv2.putText(frame, fps_text, (20, 40), cv2.FONT_HERSHEY_PLAIN,
+                1, (0, 255, 0), 2)
+
+            # Show frame
             cv2.imshow("frame", frame)
+
+            # Quit 
             key = cv2.waitKey(1)
             if key == ord("q") or key == 27:
                 break
-        pbar.close()
+        
     elif os.path.splitext(image_path)[1] in videos_format:
         file, ext = os.path.splitext(image_path)
         video_out = '{}_detected.avi'.format(file)
@@ -108,9 +146,10 @@ def _main_(args):
         frame_h = int(video_reader.get(cv2.CAP_PROP_FRAME_HEIGHT))
         frame_w = int(video_reader.get(cv2.CAP_PROP_FRAME_WIDTH))
         print(video_out)
+        
         video_writer = cv2.VideoWriter(video_out,
                                        cv2.VideoWriter_fourcc(*'XVID'),
-                                       50.0,
+                                       30.0,
                                        (frame_w, frame_h))
 
         for _ in tqdm(range(nb_frames)):
@@ -118,6 +157,8 @@ def _main_(args):
             boxes = yolo.predict(image,
                                  iou_threshold=config['valid']['iou_threshold'],
                                  score_threshold=config['valid']['score_threshold'])
+            # boxes = NMS(boxes)
+            boxes = BT.update(boxes).values()
 
             image = draw_boxes(image, boxes, config['model']['labels'])
             video_writer.write(np.uint8(image))
