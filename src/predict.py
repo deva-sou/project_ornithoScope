@@ -139,7 +139,7 @@ def _main_(args):
         
     elif os.path.splitext(image_path)[1] in videos_format:
         file, ext = os.path.splitext(image_path)
-        video_out = '{}_detected.avi'.format(file)
+        video_out = '{}_detected_NMS.avi'.format(file)
         video_reader = cv2.VideoCapture(image_path)
 
         nb_frames = int(video_reader.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -157,7 +157,7 @@ def _main_(args):
             boxes = yolo.predict(image,
                                  iou_threshold=config['valid']['iou_threshold'],
                                  score_threshold=config['valid']['score_threshold'])
-            # boxes = NMS(boxes)
+            boxes = NMS(boxes)
             boxes = BT.update(boxes).values()
 
             image = draw_boxes(image, boxes, config['model']['labels'])
