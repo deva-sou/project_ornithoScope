@@ -237,10 +237,10 @@ class TinyYoloFeature(BaseFeatureExtractor):
 class MobileNetFeature(BaseFeatureExtractor):
     """docstring for ClassName"""
 
-    def __init__(self, input_size, freeze):
+    def __init__(self, input_size, freeze, alpha=1.0, depth_multiplier=1):
         input_image = Input(shape=input_size)
 
-        mobilenet = MobileNet(input_shape=input_size, include_top=False)
+        mobilenet = MobileNet(input_shape=input_size, include_top=False, alpha=alpha, depth_multiplier=depth_multiplier)
         if input_size[2] == 3:
             try:
                 print("Loading pretrained weights: " + MOBILENET_BACKEND_PATH)
@@ -265,10 +265,10 @@ class MobileNetFeature(BaseFeatureExtractor):
 class MobileNetV2Feature(BaseFeatureExtractor):
     """docstring for ClassName"""
 
-    def __init__(self, input_size, freeze):
+    def __init__(self, input_size, freeze, alpha=1.0, depth_multiplier=1):
         input_image = Input(shape=input_size)
 
-        mobilenet2 = MobileNetV2(input_shape=input_size, include_top=False)
+        mobilenet2 = MobileNetV2(input_shape=input_size, include_top=False, alpha=alpha, depth_multiplier=depth_multiplier)
         if input_size[2] == 3:
             try:
                 print("Loading pretrained weights: " + MOBILENET2_BACKEND_PATH)

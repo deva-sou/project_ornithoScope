@@ -2,6 +2,7 @@ import os
 import shutil
 import sys
 import copy
+import re
 from datetime import datetime
 
 import cv2
@@ -25,6 +26,7 @@ class BoundBox:
 
         self.label = -1
         self.score = -1
+        self.id = -1
 
     def get_label(self):
         #if self.label == -1: -> Bug sur le nombre de bbox prédites
@@ -42,13 +44,14 @@ class BoundBox:
         Helper method for printing the object's values
         :return:
         """
-        return "<BoundBox({}, {}, {}, {}, {}, {})>\n".format(
+        return "<BoundBox({}, {}, {}, {}, {}, {}, {})>\n".format(
             self.xmin,
             self.xmax,
             self.ymin,
             self.ymax,
             self.get_label(),
-            self.get_score()
+            self.get_score(),
+            self.id
         )
 
 
@@ -102,6 +105,10 @@ def draw_boxes(image, boxes, labels):
         cv2.putText(image, "{} {:.3f}".format(labels[box.get_label()], box.get_score()),
                     (xmin, ymin + line_width_factor * 10), cv2.FONT_HERSHEY_PLAIN, 2e-3 * min(image_h, image_w),
                     (0, 255, 0), line_width_factor)
+        if box.id >= 0:
+            cv2.putText(image, "ID : {}".format(box.id),
+                        (xmin, ymin + 2 * line_width_factor * 10), cv2.FONT_HERSHEY_PLAIN, 2e-3 * min(image_h, image_w),
+                        (0, 255, 0), line_width_factor)
 
     return image
 
@@ -133,7 +140,7 @@ def decode_netout(netout, anchors, nb_class, obj_threshold=0.5, nms_threshold=0.
 
                     box = BoundBox(x - w / 2, y - h / 2, x + w / 2, y + h / 2, confidence, classes)
                     boxes.append(box)
-    print(boxes)
+    # print(boxes)
     # suppress non-maximal boxes
     for c in range(nb_class):
         sorted_indices = list(reversed(np.argsort([box.classes[c] for box in boxes])))
@@ -153,7 +160,7 @@ def decode_netout(netout, anchors, nb_class, obj_threshold=0.5, nms_threshold=0.
 
     # remove the boxes which are less likely than a obj_threshold
     boxes = [box for box in boxes if box.get_score() > obj_threshold]
-    print(boxes)
+    # print(boxes)
     return boxes
 
 
@@ -257,10 +264,24 @@ def import_feature_extractor(backend, input_size, freeze=False):
         feature_extractor = Inception3Feature(input_size, freeze=freeze)
     elif backend == 'SqueezeNet':
         feature_extractor = SqueezeNetFeature(input_size, freeze=freeze)
-    elif backend == 'MobileNet':
-        feature_extractor = MobileNetFeature(input_size, freeze=freeze)
-    elif backend == 'MobileNetV2':
-        feature_extractor = MobileNetV2Feature(input_size, freeze=freeze)
+    elif backend.startswith('MobileNetV2'):
+        # Extract ALPHA
+        alpha = re.search("alpha=([0-1]?\.[0-9]*)", backend)
+        alpha = float(alpha.group(1)) if alpha != None else 1.0
+        # Extract RHO
+        rho = re.search("rho=([0-9]+)", backend)
+        rho = int(rho.group(1)) if rho != None else 1
+        # Build MobileNetFeature
+        feature_extractor = MobileNetV2Feature(input_size, freeze=freeze, alpha=alpha, depth_multiplier=rho)
+    elif backend.startswith('MobileNet'):
+        # Extract ALPHA
+        alpha = re.search("alpha=([0-1]?\.[0-9]*)", backend)
+        alpha = float(alpha.group(1)) if alpha != None else 1.0
+        # Extract RHO
+        rho = re.search("rho=([0-9]+)", backend)
+        rho = int(rho.group(1)) if rho != None else 1
+        # Build MobileNetFeature
+        feature_extractor = MobileNetFeature(input_size, freeze=freeze, alpha=alpha, depth_multiplier=rho)
     elif backend == 'Full Yolo':
         feature_extractor = FullYoloFeature(input_size, freeze=freeze)
     elif backend == 'Tiny Yolo':
