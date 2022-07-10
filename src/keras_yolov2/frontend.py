@@ -4,6 +4,7 @@ import sys
 import cv2
 import numpy as np
 import pickle
+import tensorflow as tf
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard, ReduceLROnPlateau
 from tensorflow.keras.layers import Reshape, Conv2D, Input
 from tensorflow.keras.models import Model
@@ -79,9 +80,16 @@ class YOLO(object):
         self._class_scale = None
         self._debug = None
         self._warmup_batches = None
+        self._interpreter = None
+        self._tflite = False
 
     def load_weights(self, weight_path):
         self._model.load_weights(weight_path)
+    
+    def load_lite(self, lite_path):
+        self._tflite = True
+        self._interpreter = tf.lite.Interpreter(model_path=lite_path)
+        self._interpreter.allocate_tensors()
 
     def train(self, train_imgs,  # the list of images to train the model
               valid_imgs,  # the list of images used to validate the model
@@ -239,7 +247,25 @@ class YOLO(object):
 
         input_image = self.resize(image)
 
-        netout = self._model.predict(input_image)[0]
+        ### TFLite
+        if self._tflite:
+
+            # Extract details
+            input_details = self._interpreter.get_input_details()
+            output_details = self._interpreter.get_output_details()
+            input_type = input_details[0]['dtype']
+
+            # Convert frame to input type
+            input_image = input_image.astype(input_type)
+
+            # Predict
+            self._interpreter.set_tensor(input_details[0]['index'], input_image)
+            self._interpreter.invoke()
+            netout = self._interpreter.get_tensor(output_details[0]['index'])[0]
+
+        ### TF
+        else:
+            netout = self._model.predict(input_image)[0]
 
         boxes = decode_netout(netout, self._anchors, self._nb_class, score_threshold, iou_threshold)
 
