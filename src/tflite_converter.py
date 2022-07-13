@@ -1,6 +1,7 @@
 import json
 import argparse
 import tensorflow as tf
+import numpy as np
 
 from keras_yolov2.frontend import YOLO
 
@@ -55,6 +56,8 @@ def _main_(args):
     
     # Convert the model
     converter = tf.lite.TFLiteConverter.from_keras_model(yolo._model)
+    converter.optimizations = [tf.lite.Optimize.DEFAULT]
+    converter.target_spec.supported_types = [tf.float16]
     tflite_model = converter.convert()
 
     # Save the model
