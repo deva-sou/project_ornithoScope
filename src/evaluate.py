@@ -32,10 +32,18 @@ argparser.add_argument(
     default='',
     help='path to pretrained weights')
 
+argparser.add_argument(
+  '-l',
+  '--lite',
+  default='',
+  type=str,
+  help='Path to tflite model')
+
 
 def _main_(args):
     config_path = args.conf
     weights_path = args.weights
+    lite_path = args.lite
     
     enable_memory_growth()
 
@@ -98,6 +106,11 @@ def _main_(args):
         yolo.load_weights(config['train']['pretrained_weights'])
     else:
         raise Exception("No pretrained weights found.")
+    
+
+    # Use tflite
+    if lite_path != '':
+        yolo.load_lite(lite_path)
 
     #########################
     #   Evaluate the network
