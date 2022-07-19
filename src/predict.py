@@ -4,6 +4,7 @@ import time
 import datetime
 import argparse
 import os
+import csv
 from tqdm import tqdm
 
 import numpy as np
@@ -93,9 +94,10 @@ def _main_(args):
 
   # Tracker
   BT = BoxTracker()
-  
+
   ### Real Time
   if use_camera:
+
     # Set video capture
     video_reader = cv2.VideoCapture(int(image_path))
 
@@ -123,6 +125,8 @@ def _main_(args):
       # Decode and draw boxes
       boxes = NMS(boxes)
       boxes = BT.update(boxes).values()
+      
+      # Draw boxes
       frame = draw_boxes(frame, boxes, config['model']['labels'])
 
       # Show the date
@@ -152,7 +156,7 @@ def _main_(args):
   ### Video
   elif os.path.splitext(image_path)[1] in videos_format:
     file, ext = os.path.splitext(image_path)
-    video_out = '{}_detected_test_normal.avi'.format(file)
+    video_out = '{}_detected.avi'.format(file)
 
     video_reader = cv2.VideoCapture(image_path)
 
@@ -162,7 +166,7 @@ def _main_(args):
     
     video_writer = cv2.VideoWriter(video_out,
                                     cv2.VideoWriter_fourcc(*'XVID'),
-                                    50.0,
+                                    15.0,
                                     (frame_w, frame_h))
 
     for _ in tqdm(range(nb_frames)):
@@ -187,6 +191,18 @@ def _main_(args):
 
     video_reader.release()
     video_writer.release()
+    
+    # History infos
+    res = {}
+    for id, history in zip(BT.tracker_history.keys(), BT.tracker_history.values()):
+      res[id] = {}
+      for class_id, trust in history:
+        class_label = config['model']['labels'][class_id]
+        if class_label in res[id]:
+          res[id][class_label] += trust
+        else:
+          res[id][class_label] = trust
+    print(res)
 
   ### Image
   else:
@@ -196,7 +212,7 @@ def _main_(args):
       frame = cv2.imread(image_path)
 
       # Predict
-      boxes = yolo.predict(resized_frame)
+      boxes = yolo.predict(frame)
 
       # Draw boxes
       frame = draw_boxes(frame, boxes, config['model']['labels'])

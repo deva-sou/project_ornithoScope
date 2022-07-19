@@ -8,6 +8,7 @@ class BoxTracker():
     self.objects = OrderedDict()
     self.disappeared = OrderedDict()
     self.maxDisappeared = maxDisappeared
+    self.tracker_history = {}
 
   def register(self, box):
     """
@@ -24,8 +25,8 @@ class BoxTracker():
     """
     del self.objects[objectID]
     del self.disappeared[objectID]
-
-  def update(self, inputBoxes):
+  
+  def compute(self, inputBoxes):
     """
     Compute next iteration track.
     """
@@ -102,6 +103,21 @@ class BoxTracker():
         self.register(inputBoxes[col])
       
     return self.objects
+
+  def update(self, inputBoxes):
+    """
+    Update boxtracker with next iteration.
+    """
+    boxes = self.compute(inputBoxes)
+    
+    # Save hisotry in dict
+    for box in boxes.values():
+      if box.id in self.tracker_history:
+        self.tracker_history[box.id].append((box.get_label(), box.get_score()))
+      else:
+        self.tracker_history[box.id] = [(box.get_label(), box.get_score())]
+
+    return boxes
 
 
 def distance_box(box1, box2):
