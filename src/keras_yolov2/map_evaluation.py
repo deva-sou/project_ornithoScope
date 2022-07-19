@@ -76,6 +76,8 @@ class MapEvaluation(keras.callbacks.Callback):
     def evaluate_map(self):
         predictions,class_metrics,class_res,p_global, r_global,f1_global = self._custom_p_r_f1_calculus()
         return predictions,class_metrics,class_res,p_global,r_global,f1_global
+    
+    #get_TP_FP_FN_TN provient de .utils
 
     def _custom_p_r_f1_calculus(self):
         # get labels predictions
