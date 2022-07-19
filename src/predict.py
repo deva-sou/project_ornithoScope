@@ -248,7 +248,7 @@ def _main_(args):
                               score_threshold=config['valid']['score_threshold'])
 
         if output_format == 'img':
-          image = draw_boxes(image, boxes, config['model']['labels'])
+          image = draw_boxes(frame, boxes, config['model']['labels'])
           fname = os.path.basename(fname)
           cv2.imwrite(os.path.join(image_path, "detected", fname), image)
         elif output_format == 'csv':
