@@ -127,7 +127,7 @@ class YOLO(object):
         self._debug = 0
         self._saved_pickles_path = saved_pickles_path
         #######################################
-        # Make train and validation generators
+        # Make train and validation generators, nos ensembles de train et de validation
         #######################################
 
         generator_config = {
@@ -150,6 +150,9 @@ class YOLO(object):
             custom_generator_callback = import_dynamically(custom_callback_name)
         else:
             custom_generator_callback = None
+            
+        #train_imgs: the list of img to train the model, donc format jpg
+        #BatchGenerator: défini dans preprocessing
 
         train_generator = BatchGenerator(train_imgs,
                                          generator_config,
@@ -180,17 +183,17 @@ class YOLO(object):
         self._model.compile(loss=loss_yolo, optimizer=optimizer)
 
         ############################################
-        # Make a few callbacks
+        # Make a few callbacks (gère l'évolution du lr en fonction du temps et selon nos exigences)
         ############################################
 
         reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2,
-                                                        patience = 7, min_lr = 0.00001, verbose = 1)
+                                                        patience = 7, min_lr = 0.00001, verbose = 1) #Reduce learning rate when a metric has stopped improving. This callback monitors a quantity and if no improvement is seen for a 'patience' number of epochs, the learning rate is reduced.
 
         early_stop_cb = EarlyStopping(monitor='val_loss',
                                       min_delta=0.001,
                                       patience=15,
                                       mode='min',
-                                      verbose=1)
+                                      verbose=1)#Stop training when a monitored metric has stopped improving. Where an absolute change of less than min_delta, will count as no improvement. 
 
         tensorboard_cb = TensorBoard(log_dir=tb_logdir,
                                      histogram_freq=0,
@@ -208,6 +211,9 @@ class YOLO(object):
         ckp_saver = ModelCheckpoint(root + "_ckp" + ext,
                                     verbose=1,
                                     period=10)
+        
+        #en dessous on ne l'a plus utilisé pour les callbacks
+        
         map_evaluator_cb = MapEvaluation(self, valid_generator,
                                          save_best=False,
                                          save_name=root + "_bestMap" + ext,
@@ -233,7 +239,7 @@ class YOLO(object):
         if cosine_decay:
             callbacks.append(warm_up_lr)
 
-        callbacks = [reduce_lr, early_stop_cb, ckp_best_loss]
+        callbacks = [reduce_lr, early_stop_cb, ckp_best_loss] #finalement on n'utilise que ce callback
 
         #############################
         # Start the training process

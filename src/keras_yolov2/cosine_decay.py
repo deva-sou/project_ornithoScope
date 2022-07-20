@@ -2,6 +2,8 @@ from tensorflow import keras
 from tensorflow.keras import backend as K
 import numpy as np
 
+#code pour gérer le warmup
+
 
 def cosine_decay_with_warmup(global_step,
                              learning_rate_base,
