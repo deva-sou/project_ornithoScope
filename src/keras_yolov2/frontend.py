@@ -165,7 +165,14 @@ class YOLO(object):
         # Compile the model
         ############################################
 
-        optimizer = Adam(lr=learning_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
+        # Add continus evolutive LR to the optimizer
+        lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+            learning_rate,
+            decay_steps=100000,
+            decay_rate=0.96,
+            staircase=False)
+
+        optimizer = Adam(lr=lr_schedule, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
 
         loss_yolo = YoloLoss(self._anchors, (self._grid_w, self._grid_h), self._batch_size,
                              lambda_coord=coord_scale, lambda_noobj=no_object_scale, lambda_obj=object_scale,

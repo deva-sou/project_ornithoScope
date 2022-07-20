@@ -262,4 +262,6 @@ def _main_(args):
 
 if __name__ == '__main__':
   _args = argparser.parse_args()
-  _main_(_args)
+  gpu_id = os.getenv('CUDA_VISIBLE_DEVICES', '0')
+  with tf.device('/GPU:' + gpu_id):
+    _main_(_args)

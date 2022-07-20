@@ -9,6 +9,7 @@ import json
 import os
 import pickle
 from datetime import datetime
+import tensorflow as tf
 
 argparser = argparse.ArgumentParser(
     description='Train and validate YOLO_v2 model on any dataset')
@@ -171,4 +172,6 @@ def _main_(args):
 
 if __name__ == '__main__':
     _args = argparser.parse_args()
-    _main_(_args)
+    gpu_id = os.getenv('CUDA_VISIBLE_DEVICES', '0')
+    with tf.device('/GPU:' + gpu_id):
+        _main_(_args)

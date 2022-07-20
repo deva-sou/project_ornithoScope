@@ -5,7 +5,7 @@ import json
 import os
 
 import numpy as np
-from tensorflow import keras
+import tensorflow as tf
 
 from keras_yolov2.frontend import YOLO
 from keras_yolov2.preprocessing import parse_annotation_xml, parse_annotation_csv
@@ -124,4 +124,6 @@ def _main_(args):
 
 if __name__ == '__main__':
     _args = argparser.parse_args()
-    _main_(_args)
+    gpu_id = os.getenv('CUDA_VISIBLE_DEVICES', '0')
+    with tf.device('/GPU:' + gpu_id):
+        _main_(_args)
