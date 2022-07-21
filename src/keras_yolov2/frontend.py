@@ -94,11 +94,9 @@ class YOLO(object):
     def train(self, train_imgs,  # the list of images to train the model
               valid_imgs,  # the list of images used to validate the model
               train_times,  # the number of time to repeat the training set, often used for small datasets
-              valid_times,  # the number of times to repeat the validation set, often used for small datasets
               nb_epochs,  # number of epoches
               learning_rate,  # the learning rate
               batch_size,  # the size of the batch
-              warmup_epochs,  # number of initial batches to let the model familiarize with the new dataset
               object_scale,
               no_object_scale,
               coord_scale,
@@ -111,7 +109,6 @@ class YOLO(object):
               early_stop=True,
               custom_callback=[],
               tb_logdir="./",
-              train_generator_callback=None,
               iou_threshold=0.5,
               score_threshold=0.5,
               cosine_decay=False
@@ -142,14 +139,6 @@ class YOLO(object):
             'ANCHORS': self._anchors,
             'BATCH_SIZE': self._batch_size,
         }
-
-        if train_generator_callback is not None:
-            basepath = os.path.dirname(train_generator_callback)
-            sys.path.append(basepath)
-            custom_callback_name = os.path.basename(train_generator_callback)
-            custom_generator_callback = import_dynamically(custom_callback_name)
-        else:
-            custom_generator_callback = None
             
         #train_imgs: the list of img to train the model, donc format jpg
         #BatchGenerator: défini dans preprocessing
@@ -223,10 +212,10 @@ class YOLO(object):
                                          iou_threshold=iou_threshold,
                                          score_threshold=score_threshold)
 
-        self._warmup_batches = warmup_epochs * (train_times * len(train_generator) + valid_times * len(valid_generator))
+        self._warmup_batches = train_times * len(train_generator) + len(valid_generator)
         if cosine_decay:
             total_steps = int(nb_epochs * len(train_generator) / batch_size)
-            warmup_steps = int(warmup_epochs * len(train_generator) / batch_size)
+            warmup_steps = int(len(train_generator) / batch_size)
             warm_up_lr = WarmUpCosineDecayScheduler(learning_rate_base=learning_rate,
                                                     total_steps=total_steps,
                                                     warmup_learning_rate=0.0,
@@ -249,9 +238,9 @@ class YOLO(object):
 
         history = self._model.fit_generator(generator=train_generator,
                                   steps_per_epoch=len(train_generator) * train_times,
-                                  epochs=warmup_epochs + nb_epochs,
+                                  epochs=nb_epochs,
                                   validation_data=valid_generator,
-                                  validation_steps=len(valid_generator) * valid_times,
+                                  validation_steps=len(valid_generator),
                                   callbacks=callbacks,
                                   workers=workers,
                                   max_queue_size=max_queue_size)

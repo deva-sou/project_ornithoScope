@@ -20,13 +20,11 @@
         "train_image_folder":   "",
         "train_annot_folder":   "",     
 
-        "callback":             null,
         "train_times":          1,
         "pretrained_weights":   "../MobileNetV2_bestLoss.h5",
         "batch_size":           16,
         "learning_rate":        1e-3,
         "nb_epochs":            100,
-        "warmup_epochs":        0,
 
         "workers":              12,
         "max_queue_size":       40,

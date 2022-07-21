@@ -1,7 +1,7 @@
 ## Config file:
 
 ### Remove:
-`valid time` in `valid` section
+`valid_time` in `valid` section
 `callback` in `train` section
 `warmup_epochs` in `train` section
 

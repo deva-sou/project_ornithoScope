@@ -18,13 +18,11 @@
     },
 
     "train": {
-        "callback":             null,
         "train_times":          1,
         "pretrained_weights":   "data/saved_weights/MobileNet_random_caped_bestLoss.h5",
         "batch_size":           16,
         "learning_rate":        1e-3,
         "nb_epochs":            100,
-        "warmup_epochs":        0,
 
         "workers":              12,
         "max_queue_size":       40,
@@ -42,7 +40,6 @@
 
     "valid": {
         "iou_threshold":        0.7,
-        "score_threshold":      0.5,
-        "valid_times":          1
+        "score_threshold":      0.5
     }
 }
