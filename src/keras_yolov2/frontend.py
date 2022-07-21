@@ -1,4 +1,3 @@
-from email.policy import default
 import os
 import sys
 
@@ -149,7 +148,6 @@ class YOLO(object):
         train_generator = BatchGenerator(train_imgs,
                                          generator_config,
                                          norm=self._feature_extractor.normalize,
-                                         callback=custom_generator_callback,
                                          policy_container = policy)
         valid_generator = BatchGenerator(valid_imgs,
                                          generator_config,
@@ -303,10 +301,10 @@ class YOLO(object):
 
         if optimizer_config['name'] == 'Adam':
             # Parse Adam arguments
-            beta_1 = float(optimizer_config.get('beta_1', default=0.9))
-            beta_2 = float(optimizer_config.get('beta_2', default=0.999))
-            epsilon = float(optimizer_config.get('epsilon', default=1e-08))
-            decay = float(optimizer_config.get('decay', default=0.0))
+            beta_1 = float(optimizer_config.get('beta_1', 0.9))
+            beta_2 = float(optimizer_config.get('beta_2', 0.999))
+            epsilon = float(optimizer_config.get('epsilon', 1e-08))
+            decay = float(optimizer_config.get('decay', 0.0))
 
             # Instanciate Adam
             return Adam(
@@ -319,8 +317,8 @@ class YOLO(object):
         
         if optimizer_config['name'] == 'SGD':
             # Parse SGD arguments
-            momentum = float(optimizer_config.get('momentum', default=0.0))
-            nesterov = bool(optimizer_config.get('nesterov', default=False))
+            momentum = float(optimizer_config.get('momentum', 0.0))
+            nesterov = bool(optimizer_config.get('nesterov', False))
 
             # Instanciate SGD
             return SGD(
@@ -331,10 +329,10 @@ class YOLO(object):
 
         if optimizer_config['name'] == 'RMSprop':
             # Parse RMSprop arguments
-            rho = float(optimizer_config.get('rho', default=0.9))
-            momentum = float(optimizer_config.get('momentum', default=0.0))
-            epsilon = float(optimizer_config.get('epsilon', default=1e-07))
-            centered = optimizer_config.get('centered', default=False)
+            rho = float(optimizer_config.get('rho', 0.9))
+            momentum = float(optimizer_config.get('momentum', 0.0))
+            epsilon = float(optimizer_config.get('epsilon', 1e-07))
+            centered = optimizer_config.get('centered', False)
 
             # Instanciate RMSprop
             return RMSprop(
@@ -362,11 +360,11 @@ class YOLO(object):
 
         if lr_scheduler_config['name'] in ('CosineDecayRestarts', 'CDR'):
             # Parse CosineDecayRestarts arguments
-            initial_learning_rate = float(lr_scheduler_config.get('initial_learning_rate', default=1e-3))
-            first_decay_steps = int(lr_scheduler_config.get('first_decay_steps', default=1000))
-            t_mul = float(lr_scheduler_config.get('t_mul', default=2.0))
-            m_mul = float(lr_scheduler_config.get('m_mul', default=1.0))
-            alpha = float(lr_scheduler_config.get('alpha', default=0.0))
+            initial_learning_rate = float(lr_scheduler_config.get('initial_learning_rate', 1e-3))
+            first_decay_steps = int(lr_scheduler_config.get('first_decay_steps', 1000))
+            t_mul = float(lr_scheduler_config.get('t_mul', 2.0))
+            m_mul = float(lr_scheduler_config.get('m_mul', 1.0))
+            alpha = float(lr_scheduler_config.get('alpha', 0.0))
 
             # Instanciate CosineDecayRestarts
             return CosineDecayRestarts(
@@ -379,10 +377,10 @@ class YOLO(object):
         
         if lr_scheduler_config['name'] in ('ExponentialDecay', 'ED'):
             # Parse ExponentialDecay arguments
-            initial_learning_rate = float(lr_scheduler_config.get('initial_learning_rate', default=1e-3))
-            decay_steps = int(lr_scheduler_config.get('decay_steps', default=1000))
-            decay_rate = float(lr_scheduler_config.get('decay_rate', default=0.96))
-            staircase = bool(lr_scheduler_config.get('staircase', default=False))
+            initial_learning_rate = float(lr_scheduler_config.get('initial_learning_rate', 1e-3))
+            decay_steps = int(lr_scheduler_config.get('decay_steps', 1000))
+            decay_rate = float(lr_scheduler_config.get('decay_rate', 0.96))
+            staircase = bool(lr_scheduler_config.get('staircase', False))
 
             # Intanciate ExponentialDecay
             return ExponentialDecay(

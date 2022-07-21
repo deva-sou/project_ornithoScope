@@ -138,7 +138,7 @@ def parse_annotation_csv(csv_file, labels=[], base_path=""):
 
 
 class BatchGenerator(Sequence):
-    def __init__(self, images, config, shuffle=True, jitter=True, norm=None, callback=None, policy_container='none'):
+    def __init__(self, images, config, shuffle=True, jitter=True, norm=None, policy_container='none'):
 
         self._images = images
         self._config = config
@@ -146,7 +146,6 @@ class BatchGenerator(Sequence):
         self._shuffle = shuffle
         self._jitter = jitter
         self._norm = norm
-        self._callback = callback
         self._policy_container = policy_container
 
         self._anchors = [BoundBox(0, 0, config['ANCHORS'][2 * i], config['ANCHORS'][2 * i + 1])
@@ -329,8 +328,6 @@ class BatchGenerator(Sequence):
 
         if image is None:
             print('Cannot find ', image_name)
-        if self._callback is not None:
-            image, train_instance = self._callback(image, train_instance)
 
         h = image.shape[0]
         w = image.shape[1]
