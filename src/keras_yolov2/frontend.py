@@ -10,6 +10,7 @@ from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoa
 from tensorflow.keras.layers import Reshape, Conv2D, Input
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam, SGD, RMSprop
+from tensorflow.keras.optimizers.schedules import CosineDecayRestarts, ExponentialDecay
 
 from .cosine_decay import WarmUpCosineDecayScheduler
 from .map_evaluation import MapEvaluation
@@ -159,16 +160,7 @@ class YOLO(object):
         # Compile the model
         ############################################
 
-        # Restartable cosine decay
-        lr_decayed_fn = tf.keras.optimizers.schedules.CosineDecayRestarts(
-            initial_learning_rate=learning_rate,
-            first_decay_steps=1000,
-            t_mul=2.0,                  # n-th period decay steps : first_decay_steps * t_mul ** n
-            m_mul=1.0,                  # n-th period start learning rate : initial_learning_rate * m_mul ** n
-            alpha=0.0                   # 0.0 -> lr reach 0.0 ; 1.0 -> lr stays at initial learning rate
-        )
-
-        optimizer = self.create_optimizer(optimizer_config, learning_rate)
+        optimizer = YOLO.create_optimizer(optimizer_config, learning_rate)
 
         loss_yolo = YoloLoss(self._anchors, (self._grid_w, self._grid_h), self._batch_size,
                              lambda_coord=coord_scale, lambda_noobj=no_object_scale, lambda_obj=object_scale,
@@ -298,14 +290,27 @@ class YOLO(object):
         
         return input_image
 
-    def create_optimizer(self, optimizer_config, learning_rate):
+    def create_optimizer(optimizer_config, default_lr):
+        """
+        Instanciate an optimizer corresponding to `optimizer_config` dict.
+        """
+
+        if not 'name' in optimizer_config.keys():
+            raise Exception('Optimizer name not indicated')
+        
+        # Create learning-rate scheduler
+        lr_scheduler = YOLO.create_lr_scheduler(optimizer_config['lr_scheduler'], default_lr)
+
         if optimizer_config['name'] == 'Adam':
+            # Parse Adam arguments
             beta_1 = float(optimizer_config.get('beta_1', default=0.9))
             beta_2 = float(optimizer_config.get('beta_2', default=0.999))
             epsilon = float(optimizer_config.get('epsilon', default=1e-08))
             decay = float(optimizer_config.get('decay', default=0.0))
+
+            # Instanciate Adam
             return Adam(
-                    learning_rate=learning_rate,
+                    learning_rate=lr_scheduler,
                     beta_1=beta_1,
                     beta_2=beta_2,
                     epsilon=epsilon,
@@ -313,28 +318,82 @@ class YOLO(object):
                 )
         
         if optimizer_config['name'] == 'SGD':
+            # Parse SGD arguments
             momentum = float(optimizer_config.get('momentum', default=0.0))
             nesterov = bool(optimizer_config.get('nesterov', default=False))
+
+            # Instanciate SGD
             return SGD(
-                    learning_rate=learning_rate,
+                    learning_rate=lr_scheduler,
                     momentum=momentum,
                     nesterov=nesterov
                 )
 
         if optimizer_config['name'] == 'RMSprop':
+            # Parse RMSprop arguments
             rho = float(optimizer_config.get('rho', default=0.9))
             momentum = float(optimizer_config.get('momentum', default=0.0))
             epsilon = float(optimizer_config.get('epsilon', default=1e-07))
             centered = optimizer_config.get('centered', default=False)
+
+            # Instanciate RMSprop
             return RMSprop(
-                    learning_rate=learning_rate,
+                    learning_rate=lr_scheduler,
                     rho=rho,
                     momentum=momentum,
                     epsilon=epsilon,
                     centered=centered
                 )
         
-        raise Exception('Optimizer name is not valid, should be Adam, SGD or RMSprop')
+        # Incorrect optimizer name
+        raise Exception('Optimizer name \'%s\' is not valid, should be Adam, SGD or RMSprop' % optimizer_config['name'])
+
+    def create_lr_scheduler(lr_scheduler_config, default_lr):
+        """
+        Intanciate learing-rate scheduler corresponding to `lr_scheduler_config` dict.
+        """
+        
+        # Empty scheduler and None scheduler
+        if not 'name' in lr_scheduler_config.keys():
+            return default_lr
+        if lr_scheduler_config['name'] in ('None', 'none'):
+            return default_lr
+        
+
+        if lr_scheduler_config['name'] in ('CosineDecayRestarts', 'CDR'):
+            # Parse CosineDecayRestarts arguments
+            initial_learning_rate = float(lr_scheduler_config.get('initial_learning_rate', default=1e-3))
+            first_decay_steps = int(lr_scheduler_config.get('first_decay_steps', default=1000))
+            t_mul = float(lr_scheduler_config.get('t_mul', default=2.0))
+            m_mul = float(lr_scheduler_config.get('m_mul', default=1.0))
+            alpha = float(lr_scheduler_config.get('alpha', default=0.0))
+
+            # Instanciate CosineDecayRestarts
+            return CosineDecayRestarts(
+                    initial_learning_rate=initial_learning_rate,
+                    first_decay_steps=first_decay_steps,
+                    t_mul=t_mul,
+                    m_mul=m_mul,
+                    alpha=alpha
+                )
+        
+        if lr_scheduler_config['name'] in ('ExponentialDecay', 'ED'):
+            # Parse ExponentialDecay arguments
+            initial_learning_rate = float(lr_scheduler_config.get('initial_learning_rate', default=1e-3))
+            decay_steps = int(lr_scheduler_config.get('decay_steps', default=1000))
+            decay_rate = float(lr_scheduler_config.get('decay_rate', default=0.96))
+            staircase = bool(lr_scheduler_config.get('staircase', default=False))
+
+            # Intanciate ExponentialDecay
+            return ExponentialDecay(
+                    initial_learning_rate=initial_learning_rate,
+                    decay_steps=decay_steps,
+                    decay_rate=decay_rate,
+                    staircase=staircase
+                )
+
+        raise Exception('Learning-rate scheduler name \'%s\' is not valid, should be None, CosineDecayRestarts or ExponentialDecay' % lr_scheduler_config['name'])       
+
 
     @property
     def model(self):
