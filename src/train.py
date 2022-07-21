@@ -112,6 +112,7 @@ def _main_(args):
                workers=config['train']['workers'],
                max_queue_size=config['train']['max_queue_size'],
                tb_logdir=config['train']['tensorboard_log_dir'],
+               optimizer_config=config['train']['optimizer'],
                iou_threshold=config['valid']['iou_threshold'],
                score_threshold=config['valid']['score_threshold'],
                cosine_decay=config['train']['cosine_decay'],

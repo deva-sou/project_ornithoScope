@@ -1,3 +1,4 @@
+from email.policy import default
 import os
 import sys
 
@@ -8,7 +9,7 @@ import tensorflow as tf
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard, ReduceLROnPlateau
 from tensorflow.keras.layers import Reshape, Conv2D, Input
 from tensorflow.keras.models import Model
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers import Adam, SGD, RMSprop
 
 from .cosine_decay import WarmUpCosineDecayScheduler
 from .map_evaluation import MapEvaluation
@@ -103,6 +104,7 @@ class YOLO(object):
               class_scale,
               policy,
               saved_pickles_path,
+              optimizer_config,
               saved_weights_name='best_weights.h5',
               workers=3,
               max_queue_size=8,
@@ -139,7 +141,7 @@ class YOLO(object):
             'ANCHORS': self._anchors,
             'BATCH_SIZE': self._batch_size,
         }
-            
+        
         #train_imgs: the list of img to train the model, donc format jpg
         #BatchGenerator: défini dans preprocessing
 
@@ -166,7 +168,7 @@ class YOLO(object):
             alpha=0.0                   # 0.0 -> lr reach 0.0 ; 1.0 -> lr stays at initial learning rate
         )
 
-        optimizer = Adam(learning_rate=learning_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
+        optimizer = self.create_optimizer(optimizer_config, learning_rate)
 
         loss_yolo = YoloLoss(self._anchors, (self._grid_w, self._grid_h), self._batch_size,
                              lambda_coord=coord_scale, lambda_noobj=no_object_scale, lambda_obj=object_scale,
@@ -295,6 +297,44 @@ class YOLO(object):
             input_image = image[np.newaxis, ..., np.newaxis]
         
         return input_image
+
+    def create_optimizer(self, optimizer_config, learning_rate):
+        if optimizer_config['name'] == 'Adam':
+            beta_1 = float(optimizer_config.get('beta_1', default=0.9))
+            beta_2 = float(optimizer_config.get('beta_2', default=0.999))
+            epsilon = float(optimizer_config.get('epsilon', default=1e-08))
+            decay = float(optimizer_config.get('decay', default=0.0))
+            return Adam(
+                    learning_rate=learning_rate,
+                    beta_1=beta_1,
+                    beta_2=beta_2,
+                    epsilon=epsilon,
+                    decay=decay
+                )
+        
+        if optimizer_config['name'] == 'SGD':
+            momentum = float(optimizer_config.get('momentum', default=0.0))
+            nesterov = bool(optimizer_config.get('nesterov', default=False))
+            return SGD(
+                    learning_rate=learning_rate,
+                    momentum=momentum,
+                    nesterov=nesterov
+                )
+
+        if optimizer_config['name'] == 'RMSprop':
+            rho = float(optimizer_config.get('rho', default=0.9))
+            momentum = float(optimizer_config.get('momentum', default=0.0))
+            epsilon = float(optimizer_config.get('epsilon', default=1e-07))
+            centered = optimizer_config.get('centered', default=False)
+            return RMSprop(
+                    learning_rate=learning_rate,
+                    rho=rho,
+                    momentum=momentum,
+                    epsilon=epsilon,
+                    centered=centered
+                )
+        
+        raise Exception('Optimizer name is not valid, should be Adam, SGD or RMSprop')
 
     @property
     def model(self):
