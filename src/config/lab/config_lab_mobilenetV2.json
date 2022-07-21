@@ -32,6 +32,10 @@
         "cosine_decay":         true,
         "tensorboard_log_dir":  "./logs/1",
 
+        "optimizer": {
+            "name": "Adam"
+        },
+
         "object_scale":         5.0 ,
         "no_object_scale":      1.0,
         "coord_scale":          1.0,
@@ -41,7 +45,7 @@
     },
 
     "valid": {
-        "iou_threshold":        0.7,
+        "iou_threshold":        0.4,
         "score_threshold":      0.5,
         "valid_csv_file":       "/home/acarlier/code/OrnithoScope_keras/keras_yolo2/birds_data_csv/input_test.csv",
         "valid_csv_base_path":  "/home/acarlier/code/data_ornithoscope/p0133_bird_data/raw_data/",

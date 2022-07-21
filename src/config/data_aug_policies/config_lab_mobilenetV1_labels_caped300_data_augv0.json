@@ -45,7 +45,7 @@
     },
 
     "valid": {
-        "iou_threshold":        0.7,
+        "iou_threshold":        0.4,
         "score_threshold":      0.5
     }
 }

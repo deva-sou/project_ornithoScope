@@ -30,6 +30,10 @@
         "cosine_decay":         true,
         "tensorboard_log_dir":  "./logs/1",
 
+        "optimizer": {
+            "name": "Adam"
+        },
+
         "object_scale":         5.0 ,
         "no_object_scale":      1.0,
         "coord_scale":          1.0,
@@ -39,7 +43,7 @@
     },
 
     "valid": {
-        "iou_threshold":        0.7,
+        "iou_threshold":        0.4,
         "score_threshold":      0.5
     }
 }
