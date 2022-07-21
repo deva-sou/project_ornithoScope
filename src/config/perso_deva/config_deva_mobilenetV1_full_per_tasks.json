@@ -10,7 +10,7 @@
     },
 
     "data" : {
-        "base_path":            "/home/deva/code/data_ornithoscope/raw_data/", 
+        "base_path":            "/home/dams1309/raw_data", 
         "train_csv_file":       "data/inputs/input_train.csv",
         "test_csv_file":        [
                                 "data/input_test_per_tasks/task_2021-03-01_09.csv",

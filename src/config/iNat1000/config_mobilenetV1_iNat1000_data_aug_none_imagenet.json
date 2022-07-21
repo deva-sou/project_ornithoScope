@@ -10,7 +10,7 @@
     },
 
     "data" : {
-        "base_path":            "/home/acarlier/code/iNat-1000/", 
+        "base_path":            "/home/dams1309/raw_data", 
         "train_csv_file":       "data/iNat1000/iNat-1000.csv",
         "valid_csv_file":       "",
         "test_csv_file":        ["data/inputs/input_test.csv"], 

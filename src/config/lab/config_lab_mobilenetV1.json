@@ -10,7 +10,7 @@
     },
 
     "data" : {
-        "base_path":            "/home/acarlier/code/data_ornithoscope/p0133_bird_data/raw_data/", 
+        "base_path":            "/home/dams1309/raw_data", 
         "train_csv_file":       "data/inputs/input_train.csv",
         "test_csv_file":        [
                                 "data/input_test_per_tasks/task_2021-03-01_09.csv",

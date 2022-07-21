@@ -10,7 +10,7 @@
     },
 
     "data" : {
-        "base_path":            "/home/acarlier/code/data_ornithoscope/p0133_bird_data/raw_data/", 
+        "base_path":            "/home/dams1309/raw_data", 
         "train_csv_file":       "data/inputs/iNat1000/iNat-1000-small_goodpath.csv",
         "valid_csv_file":       "",
         "test_csv_file":        ["data/inputs/input_test.csv"], 

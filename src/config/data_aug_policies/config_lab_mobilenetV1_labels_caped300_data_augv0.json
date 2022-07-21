@@ -10,7 +10,7 @@
     },
 
     "data" : {
-        "base_path":            "/media/damien/One Touch/data_ornithoscope/p0133_bird_data/raw_data/", 
+        "base_path":            "/home/dams1309/raw_data", 
         "train_csv_file":       "data/inputs/raw_data/cleaned_labels/input_train_caped300_cleaned.csv",
         "test_csv_file":        ["data/inputs/input_test.csv"], 
         "saved_weight_path":    "data/saved_weights/",
