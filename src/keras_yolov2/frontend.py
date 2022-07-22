@@ -169,8 +169,8 @@ class YOLO(object):
         # Make a few callbacks (gère l'évolution du lr en fonction du temps et selon nos exigences)
         ############################################
 
-        reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2,
-                                                        patience = 7, min_lr = 0.00001, verbose = 1) #Reduce learning rate when a metric has stopped improving. This callback monitors a quantity and if no improvement is seen for a 'patience' number of epochs, the learning rate is reduced.
+        # reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2,
+        #                                                 patience = 7, min_lr = 0.00001, verbose = 1) #Reduce learning rate when a metric has stopped improving. This callback monitors a quantity and if no improvement is seen for a 'patience' number of epochs, the learning rate is reduced.
 
         early_stop_cb = EarlyStopping(monitor='val_loss',
                                       min_delta=0.001,
@@ -222,7 +222,7 @@ class YOLO(object):
         if cosine_decay:
             callbacks.append(warm_up_lr)
 
-        callbacks = [reduce_lr, early_stop_cb, ckp_best_loss] #finalement on n'utilise que ce callback
+        callbacks = [early_stop_cb, ckp_best_loss]
 
         #############################
         # Start the training process
