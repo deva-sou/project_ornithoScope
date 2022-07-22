@@ -12,7 +12,7 @@
 python3 predict.py -c config/data_aug_policies/config_lab_mobilenetV1_labels_caped300_data_augv0.json -w data/saved_weights/MobileNet_caped300_bestLoss.h5 -i /home/acarlier/code/data_ssd/ssd_maxime/PhotoFeeder/Annotated/balacet_2021_07_05-07/2021-07-05-11-03-05.jpg -o img # -o veut dire output et le format
 
 # Train config
-python3 train.py -c config/data_aug_policies/config_lab_mobilenetV1_labels_caped300_data_augv0.json
+python3 train.py -c config/data_aug_policies/config_lab_mobilenetV1_caped300_data_augv0_scheduler_et_callbacks.json
 
 # Evaluate config
 python3 evaluate.py -c config/data_aug_policies/config_lab_mobilenetV1_labels_caped300_data_augv0.json 

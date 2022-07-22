@@ -11,6 +11,8 @@ from keras_yolov2.frontend import YOLO
 from keras_yolov2.preprocessing import parse_annotation_xml, parse_annotation_csv
 from keras_yolov2.utils import enable_memory_growth
 
+#argparser permet de faire varier facielement les paths lorsqu'on les appeles avec les -c pour les commandes linux pour lancer train par ex
+
 argparser = argparse.ArgumentParser(
     description='Train and validate YOLO_v2 model on any dataset')
 
@@ -100,11 +102,9 @@ def _main_(args):
     yolo.train(train_imgs=train_imgs,
                valid_imgs=valid_imgs,
                train_times=config['train']['train_times'],
-               valid_times=config['valid']['valid_times'],
                nb_epochs=config['train']['nb_epochs'],
                learning_rate=config['train']['learning_rate'],
                batch_size=config['train']['batch_size'],
-               warmup_epochs=config['train']['warmup_epochs'],
                object_scale=config['train']['object_scale'],
                no_object_scale=config['train']['no_object_scale'],
                coord_scale=config['train']['coord_scale'],
@@ -114,7 +114,7 @@ def _main_(args):
                workers=config['train']['workers'],
                max_queue_size=config['train']['max_queue_size'],
                tb_logdir=config['train']['tensorboard_log_dir'],
-               train_generator_callback=config['train']['callback'],
+               optimizer_config=config['train']['optimizer'],
                iou_threshold=config['valid']['iou_threshold'],
                score_threshold=config['valid']['score_threshold'],
                cosine_decay=config['train']['cosine_decay'],
