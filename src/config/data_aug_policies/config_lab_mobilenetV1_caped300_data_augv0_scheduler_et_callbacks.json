@@ -28,9 +28,9 @@
         "nb_epochs":            30,
         "warmup_epochs":        0,
         "optimizer": {
-            "name": "Adam",
+            "name": "RMSprop",
             "lr_scheduler": {
-                "name": "ED"
+                "name": "CosineDecayRestarts"
             }
         },
         "freeze":               false,

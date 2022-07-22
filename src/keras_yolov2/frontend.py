@@ -226,23 +226,8 @@ class YOLO(object):
                                          iou_threshold=iou_threshold,
                                          score_threshold=score_threshold)
 
-        self._warmup_batches = warmup_epochs * (train_times * len(train_generator) + valid_times * len(valid_generator))
-        if cosine_decay:
-            total_steps = int(nb_epochs * len(train_generator) / batch_size)
-            warmup_steps = int(warmup_epochs * len(train_generator) / batch_size)
-            warm_up_lr = WarmUpCosineDecayScheduler(learning_rate_base=learning_rate,
-                                                    total_steps=total_steps,
-                                                    warmup_learning_rate=0.0,
-                                                    warmup_steps=warmup_steps,
-                                                    hold_base_rate_steps=0)
+ 
 
-        if not isinstance(custom_callback, list):
-            custom_callback = [custom_callback]
-        callbacks = [ckp_best_loss, ckp_saver, tensorboard_cb, map_evaluator_cb] + custom_callback
-        if early_stop:
-            callbacks.append(early_stop_cb)
-        if cosine_decay:
-            callbacks.append(warm_up_lr)
 
         callbacks = [reduce_lr, early_stop_cb, ckp_best_loss] #finalement on n'utilise que ce callback
 
@@ -252,9 +237,7 @@ class YOLO(object):
 
         history = self._model.fit_generator(generator=train_generator,
                                   steps_per_epoch=len(train_generator) * train_times,
-                                  epochs=warmup_epochs + nb_epochs,
                                   validation_data=valid_generator,
-                                  validation_steps=len(valid_generator) * valid_times,
                                   callbacks=callbacks,
                                   workers=workers,
                                   max_queue_size=max_queue_size).history
