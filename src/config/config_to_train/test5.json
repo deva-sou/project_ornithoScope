@@ -19,16 +19,16 @@
     },
 
     "train": {
-        "train_times":          4,
-        "pretrained_weights":   "data/saved_weights/new_weights/MobileNet_caped300_data_aug_v0_SGD_bestLoss.h5",
+        "train_times":          1,
+        "pretrained_weights":   "data/saved_weights/new_weights/test5_bestLoss.h5",
         "freeze":               false,
         "batch_size":           16,
         "learning_rate":        1e-3,
-        "nb_epochs":            30,
+        "nb_epochs":            150,
 
         "workers":              12,
         "max_queue_size":       40,
-        "early_stop":           false,
+        "early_stop":           true,
         "tensorboard_log_dir":  "./logs/1",
 
         "optimizer": {
@@ -38,20 +38,20 @@
             "lr_scheduler": {
                 "name":                     "ED",
                 "initial_learning_rate":    1e-4,
-                "decay_steps":              1000,
+                "decay_steps":              360,
                 "decay_rate":               0.96,
                 "staircase":                false
             }
         },
 
-        "object_scale":         5.0 ,
+        "object_scale":         5.0,
         "no_object_scale":      1.0,
         "coord_scale":          1.0,
         "class_scale":          1.0,
 
         "augmentation":         "v0",
 
-        "saved_weights_name":   "data/saved_weights/new_weights/MobileNet_caped300_data_aug_v0_SGD.h5"
+        "saved_weights_name":   "data/saved_weights/new_weights/test5.h5"
     },
 
     "valid": {
