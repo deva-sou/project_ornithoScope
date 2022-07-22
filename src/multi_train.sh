@@ -24,6 +24,7 @@ do
     waiting=true
     while $waiting
     do
+        echo
         echo "Starting a new training session?"
         { # Try to start tmux 0
             tmux new-session -s 0 -d "source ../venv_ornithoscope/bin/activate ; export CUDA_VISIBLE_DEVICES=0 ; python3 train.py -c $config_path" &&
@@ -39,5 +40,4 @@ do
         }
     done
     echo "Training session started."
-    echo
 done
