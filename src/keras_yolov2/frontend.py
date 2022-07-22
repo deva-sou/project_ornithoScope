@@ -107,7 +107,6 @@ class YOLO(object):
               workers=3,
               max_queue_size=8,
               early_stop=True,
-              custom_callback=[],
               tb_logdir="./",
               iou_threshold=0.5,
               score_threshold=0.5
@@ -201,9 +200,7 @@ class YOLO(object):
                                          iou_threshold=iou_threshold,
                                          score_threshold=score_threshold)
 
-        if not isinstance(custom_callback, list):
-            custom_callback = [custom_callback]
-        callbacks = [ckp_best_loss, ckp_saver, tensorboard_cb, map_evaluator_cb] + custom_callback
+        callbacks = [ckp_best_loss] # buggy callbacks : ckp_saver, tensorboard_cb, map_evaluator_cb
         if early_stop:
             callbacks.append(early_stop_cb)
 
