@@ -1,23 +1,33 @@
-import os
-import sys
-
-import cv2
-import numpy as np
+import matplotlib.pyplot as plt
 import pickle
-import tensorflow as tf
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard, ReduceLROnPlateau
-from tensorflow.keras.layers import Reshape, Conv2D, Input
-from tensorflow.keras.models import Model
-from tensorflow.keras.optimizers import Adam, SGD, RMSprop
-from tensorflow.keras.optimizers.schedules import CosineDecayRestarts, ExponentialDecay
-
-from keras_yolov2.cosine_decay import WarmUpCosineDecayScheduler
-from keras_yolov2.map_evaluation import MapEvaluation
-from keras_yolov2.preprocessing import BatchGenerator
-from keras_yolov2.utils import decode_netout, import_feature_extractor, import_dynamically
-from keras_yolov2.yolo_loss import YoloLoss
 
 
-with open('data/pickles/history/history_data/saved_weights/new_weights/MobileNet_caped300_data_aug_v0_ADAM_bestLoss.h5.p', 'rb') as input_file:
-    e = pickle.load(input_file)
-    print(e)
+argparser = argparse.ArgumentParser(
+    description='Plot training loss and validation loss hisotiry.')
+
+argparser.add_argument(
+    '-p',
+    '--pick',
+    default='data/pickles/history/history_data/saved_weights/new_weights/MobileNet_caped300_data_aug_v0_ADAM_bestLoss.h5.p',
+    help='Path to pickle file.')
+
+
+def _main_(args):
+    pickle_file_path = args.pick
+    with open(pickle_file_path, 'rb') as input_file:
+        history = pickle.load(input_file)
+        
+    loss = histroy['loss']
+    val_loss = hisotry['val_loss']
+
+    steps = [i for i in range(len(loss))]
+
+    plt.figure('Histories')
+    plt.plot(steps, loss)
+    plt.plot(steps, val_loss)
+    plt.show()
+
+
+if __name__ == '__main__':
+    _args = argparser.parse_args()
+    _main_(_args)
