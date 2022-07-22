@@ -228,7 +228,7 @@ class YOLO(object):
         # Start the training process
         #############################
 
-        history = self._model.fit_generator(generator=train_generator,
+        history = self._model.fit(x=train_generator,
                                   steps_per_epoch=len(train_generator) * train_times,
                                   epochs=nb_epochs,
                                   validation_data=valid_generator,
@@ -237,7 +237,12 @@ class YOLO(object):
                                   workers=workers,
                                   max_queue_size=max_queue_size)
         
-        pickle.dump(history, open( f"{self._saved_pickles_path}/history/history_{root + '_bestLoss' + ext}.p", "wb" ) )
+        
+        pickle_file_path = f'{self._saved_pickles_path}/history/history_{root}_bestLoss{ext}.p'
+        pickel_dir_path ='/'.join(pickle_file_path.split('/')[:-1])
+        if not os.path.exists(pickel_dir_path):
+            os.makedirs(pickel_dir_path)
+        pickle.dump(history, open(pickle_file_path, "wb"))
 
     def predict(self, image, iou_threshold=0.5, score_threshold=0.5):
 
@@ -360,7 +365,7 @@ class YOLO(object):
 
         if lr_scheduler_config['name'] in ('CosineDecayRestarts', 'CDR'):
             # Parse CosineDecayRestarts arguments
-            initial_learning_rate = float(lr_scheduler_config.get('initial_learning_rate', 1e-3))
+            initial_learning_rate = float(lr_scheduler_config.get('initial_learning_rate', 1e-4))
             first_decay_steps = int(lr_scheduler_config.get('first_decay_steps', 1000))
             t_mul = float(lr_scheduler_config.get('t_mul', 2.0))
             m_mul = float(lr_scheduler_config.get('m_mul', 1.0))
@@ -377,7 +382,7 @@ class YOLO(object):
         
         if lr_scheduler_config['name'] in ('ExponentialDecay', 'ED'):
             # Parse ExponentialDecay arguments
-            initial_learning_rate = float(lr_scheduler_config.get('initial_learning_rate', 1e-3))
+            initial_learning_rate = float(lr_scheduler_config.get('initial_learning_rate', 1e-4))
             decay_steps = int(lr_scheduler_config.get('decay_steps', 1000))
             decay_rate = float(lr_scheduler_config.get('decay_rate', 0.96))
             staircase = bool(lr_scheduler_config.get('staircase', False))
