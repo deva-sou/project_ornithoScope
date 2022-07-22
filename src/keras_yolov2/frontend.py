@@ -11,7 +11,6 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam, SGD, RMSprop
 from tensorflow.keras.optimizers.schedules import CosineDecayRestarts, ExponentialDecay
 
-from .cosine_decay import WarmUpCosineDecayScheduler
 from .map_evaluation import MapEvaluation
 from .preprocessing import BatchGenerator
 from .utils import decode_netout, import_feature_extractor, import_dynamically
@@ -80,7 +79,6 @@ class YOLO(object):
         self._coord_scale = None
         self._class_scale = None
         self._debug = None
-        self._warmup_batches = None
         self._interpreter = None
         self._tflite = False
 
@@ -112,8 +110,7 @@ class YOLO(object):
               custom_callback=[],
               tb_logdir="./",
               iou_threshold=0.5,
-              score_threshold=0.5,
-              cosine_decay=False
+              score_threshold=0.5
               ):
 
         self._batch_size = batch_size
@@ -204,25 +201,11 @@ class YOLO(object):
                                          iou_threshold=iou_threshold,
                                          score_threshold=score_threshold)
 
-        self._warmup_batches = train_times * len(train_generator) + len(valid_generator)
-        if cosine_decay:
-            total_steps = int(nb_epochs * len(train_generator) / batch_size)
-            warmup_steps = int(len(train_generator) / batch_size)
-            warm_up_lr = WarmUpCosineDecayScheduler(learning_rate_base=learning_rate,
-                                                    total_steps=total_steps,
-                                                    warmup_learning_rate=0.0,
-                                                    warmup_steps=warmup_steps,
-                                                    hold_base_rate_steps=0)
-
         if not isinstance(custom_callback, list):
             custom_callback = [custom_callback]
         callbacks = [ckp_best_loss, ckp_saver, tensorboard_cb, map_evaluator_cb] + custom_callback
         if early_stop:
             callbacks.append(early_stop_cb)
-        if cosine_decay:
-            callbacks.append(warm_up_lr)
-
-        callbacks = [early_stop_cb, ckp_best_loss]
 
         #############################
         # Start the training process

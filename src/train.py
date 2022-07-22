@@ -115,7 +115,6 @@ def _main_(args):
                optimizer_config=config['train']['optimizer'],
                iou_threshold=config['valid']['iou_threshold'],
                score_threshold=config['valid']['score_threshold'],
-               cosine_decay=config['train']['cosine_decay'],
                policy=config['train']['augmentation'],
                saved_pickles_path = config['data']['saved_pickles_path'])
 

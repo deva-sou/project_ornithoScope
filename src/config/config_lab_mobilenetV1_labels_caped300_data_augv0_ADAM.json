@@ -20,7 +20,7 @@
 
     "train": {
         "train_times":          1,
-        "pretrained_weights":   "data/saved_weights/new_weights/MobileNet_caped300_data_aug_v0_ADAM3_bestLoss.h5",
+        "pretrained_weights":   "data/saved_weights/new_weights/MobileNet_caped300_data_aug_v0_ADAM4_bestLoss.h5",
         "freeze":               false,
         "batch_size":           16,
         "learning_rate":        1e-3,
@@ -29,7 +29,6 @@
         "workers":              12,
         "max_queue_size":       40,
         "early_stop":           false,
-        "cosine_decay":         true,
         "tensorboard_log_dir":  "./logs/1",
 
         "optimizer": {
@@ -48,7 +47,7 @@
 
         "augmentation":         "v0",
 
-        "saved_weights_name":   "data/saved_weights/new_weights/MobileNet_caped300_data_aug_v0_ADAM3.h5"
+        "saved_weights_name":   "data/saved_weights/new_weights/MobileNet_caped300_data_aug_v0_ADAM4.h5"
     },
 
     "valid": {
