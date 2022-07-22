@@ -7,11 +7,8 @@ if [ ! -f "$configs_list_path" ]; then
     exit 1
 fi
 
-it=0
 while [ $(cat $configs_list_path | wc -l) -gt 0 ];
 do
-    it=$(($it + 1))
-
     # Extract first config_path from the list
     config_path=$(cat $configs_list_path | head -n 1)
     cat $configs_list_path | tail -n +2 > $configs_list_path'_tmp'
@@ -29,11 +26,11 @@ do
     do
         echo "Starting a new training session?"
         { # Try to start tmux 0
-            tmux new-session -s 0 -d "source ../venv_ornithoscope/bin/activate ; export CUDA_VISIBLE_DEVICES=0 ; python3 train.py -c $config_path > logs/$it.log ; sleep 1000" &&
+            tmux new-session -s 0 -d "source ../venv_ornithoscope/bin/activate ; export CUDA_VISIBLE_DEVICES=0 ; python3 train.py -c $config_path" &&
             waiting=false &&
             continue
         } || { # Try to start tmux 1
-            tmux new-session -s 1 -d "source ../venv_ornithoscope/bin/activate ; export CUDA_VISIBLE_DEVICES=1 ; python3 train.py -c $config_path > logs/$it.log ; sleep 1000" &&
+            tmux new-session -s 1 -d "source ../venv_ornithoscope/bin/activate ; export CUDA_VISIBLE_DEVICES=1 ; python3 train.py -c $config_path" &&
             waiting=false &&
             continue
         } || { # No one is free, wait
