@@ -235,9 +235,9 @@ class YOLO(object):
                                   validation_steps=len(valid_generator),
                                   callbacks=callbacks,
                                   workers=workers,
-                                  max_queue_size=max_queue_size)
+                                  max_queue_size=max_queue_size).history
         
-        
+        # Save hisotry as pickle
         pickle_file_path = f'{self._saved_pickles_path}/history/history_{root}_bestLoss{ext}.p'
         pickel_dir_path ='/'.join(pickle_file_path.split('/')[:-1])
         if not os.path.exists(pickel_dir_path):
