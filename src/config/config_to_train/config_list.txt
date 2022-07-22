@@ -1,3 +1,4 @@
+config/config_to_train/test5.json
 config/config_to_train/test6.json
 config/config_to_train/test7.json
 config/config_to_train/test8.json
