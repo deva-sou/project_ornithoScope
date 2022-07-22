@@ -1,0 +1,9 @@
+config/config_to_train/test6.json
+config/config_to_train/test7.json
+config/config_to_train/test8.json
+config/config_to_train/test9.json
+config/config_to_train/test10.json
+config/config_to_train/test11.json
+config/config_to_train/test12.json
+config/config_to_train/test13.json
+config/config_to_train/test14.json
