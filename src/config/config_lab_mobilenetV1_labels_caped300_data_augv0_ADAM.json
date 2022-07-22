@@ -19,12 +19,12 @@
     },
 
     "train": {
-        "train_times":          4,
-        "pretrained_weights":   "data/saved_weights/new_weights/MobileNet_caped300_data_aug_v0_ADAM_bestLoss.h5",
+        "train_times":          1,
+        "pretrained_weights":   "data/saved_weights/new_weights/MobileNet_caped300_data_aug_v0_ADAM3_bestLoss.h5",
         "freeze":               false,
         "batch_size":           16,
         "learning_rate":        1e-3,
-        "nb_epochs":            30,
+        "nb_epochs":            150,
 
         "workers":              12,
         "max_queue_size":       40,
@@ -35,7 +35,9 @@
         "optimizer": {
             "name": "Adam",
             "lr_scheduler": {
-                "name": "ED"
+                "name": "ED",
+                "decay_steps": 360,
+                "decay_rate": 0.94
             }
         },
 
@@ -46,7 +48,7 @@
 
         "augmentation":         "v0",
 
-        "saved_weights_name":   "data/saved_weights/new_weights/MobileNet_caped300_data_aug_v0_ADAM.h5"
+        "saved_weights_name":   "data/saved_weights/new_weights/MobileNet_caped300_data_aug_v0_ADAM3.h5"
     },
 
     "valid": {
