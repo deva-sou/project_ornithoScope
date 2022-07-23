@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import pickle
 import argparse
+import itertools
 
 
 argparser = argparse.ArgumentParser(
@@ -9,23 +10,44 @@ argparser = argparse.ArgumentParser(
 argparser.add_argument(
     '-p',
     '--pick',
-    default='data/pickles/history/history_data/saved_weights/new_weights/MobileNet_caped300_data_aug_v0_RMS2_bestLoss.h5.p',
+    default='data/pickles/history/history_data/saved_weights/new_weights/test#_bestLoss.h5.p',
     help='Path to pickle file.')
 
 
 def _main_(args):
     pickle_file_path = args.pick
-    with open(pickle_file_path, 'rb') as input_file:
-        history = pickle.load(input_file)
-        
-    loss = history['loss']
-    val_loss = history['val_loss']
-
-    steps = [i for i in range(len(loss))]
 
     plt.figure('Histories')
-    plt.plot(steps, loss)
-    plt.plot(steps, val_loss)
+
+    paths = ['data/pickles/history/history_data/saved_weights/new_weights/test#_bestLoss.h5.p',
+            'data/pickles/history/history_data/saved_weights/new_weights/MobileNet_caped300_data_aug_v0_$#_bestLoss.h5.p']
+            
+    patches = [{'#' : [str(i) for i in range(1, 15)]},
+                {'#' : ['0', '1', '2', '3'], '$' : ['ADAM', 'RMS']}]
+
+    it = 0
+    for path, patch in zip(paths, patches):
+        for vals in itertools.product(*patch.values()):
+            current_path = path
+            for val, key in zip(vals, patch.keys()):
+                current_path = val.join(current_path.split(key))
+
+            try:
+                with open(current_path, 'rb') as input_file:
+                    history = pickle.load(input_file)
+            except FileNotFoundError:
+                print(current_path, "not found.")
+                continue
+                
+            loss = history['loss']
+            val_loss = history['val_loss']
+
+            steps = [i for i in range(len(loss))]
+
+            plt.plot(steps, val_loss, linestyle='-' if it < 10 else '--', label=vals)
+            it += 1
+    
+    plt.legend()
     plt.show()
 
 
