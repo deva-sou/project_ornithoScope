@@ -110,7 +110,8 @@ class YOLO(object):
               early_stop=True,
               tb_logdir="./",
               iou_threshold=0.5,
-              score_threshold=0.5
+              score_threshold=0.5,
+              custom_callbacks=[]
               ):
 
         self._batch_size = batch_size
@@ -201,7 +202,7 @@ class YOLO(object):
                                          iou_threshold=iou_threshold,
                                          score_threshold=score_threshold)
 
-        callbacks = [ckp_best_loss] + lr_callbacks # buggy callbacks : ckp_saver, tensorboard_cb, map_evaluator_cb
+        callbacks = [ckp_best_loss] + lr_callbacks + custom_callbacks # buggy callbacks : ckp_saver, tensorboard_cb, map_evaluator_cb
         if early_stop:
             callbacks.append(early_stop_cb)
 
