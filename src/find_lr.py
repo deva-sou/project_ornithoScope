@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 import argparse
 import json
 import os
@@ -31,16 +29,10 @@ def _main_(args):
     with open(config_path) as config_buffer:
         config = json.loads(config_buffer.read())
 
-    ###############################
-    #   Parse the annotations 
-    ###############################
-    split = False
-    # parse annotations of the training set
     train_imgs, train_labels = parse_annotation_csv(config['data']['train_csv_file'],
                                                     config['model']['labels'],
                                                     config['data']['base_path'])
 
-    # parse annotations of the validation set, if any, otherwise split the training set
     valid_path = config['data']['valid_csv_file']
 
     if os.path.exists(valid_path):
@@ -62,10 +54,6 @@ def _main_(args):
     if len(config['model']['labels']) > 0:
         overlap_labels = set(config['model']['labels']).intersection(set(train_labels.keys()))
 
-        # print('Seen labels:\t', train_labels)
-        # print('Given labels:\t', config['model']['labels'])
-        # print('Overlap labels:\t', overlap_labels)
-
         if len(overlap_labels) < len(config['model']['labels']):
             print('Some labels have no annotations! Please revise the list of labels in the config.json file!')
             return
@@ -75,8 +63,7 @@ def _main_(args):
         with open("labels.json", 'w') as outfile:
             json.dump({"labels": list(train_labels.keys())}, outfile)
 
-    # print('Seen labels:\t', train_labels)
-    
+
     ###############################
     #   Construct the model 
     ###############################
@@ -88,22 +75,18 @@ def _main_(args):
                 gray_mode=config['model']['gray_mode'],
                 freeze=config['train']['freeze'])
 
-    #########################################
-    #   Load the pretrained weights (if any) 
-    #########################################
-
-    if os.path.exists(config['train']['pretrained_weights']):
-        print("Loading pre-trained weights in", config['train']['pretrained_weights'])
-        yolo.load_weights(config['train']['pretrained_weights'])
-
     ###############################
     #   Start the training process 
     ###############################
 
+    config['train']['optimizer']['lr_scheduler']['name'] = 'None'
+
+    lr_finder_callback = LRFinder(start_lr=1e-7, end_lr=1, max_steps=150, smoothing=0.9)
+
     yolo.train(train_imgs=train_imgs,
                valid_imgs=valid_imgs,
-               train_times=config['train']['train_times'],
-               nb_epochs=config['train']['nb_epochs'],
+               train_times=1,
+               nb_epochs=1,
                learning_rate=config['train']['learning_rate'],
                batch_size=config['train']['batch_size'],
                object_scale=config['train']['object_scale'],
@@ -118,9 +101,12 @@ def _main_(args):
                optimizer_config=config['train']['optimizer'],
                iou_threshold=config['valid']['iou_threshold'],
                score_threshold=config['valid']['score_threshold'],
-               policy=config['train']['augmentation'],
-               saved_pickles_path = config['data']['saved_pickles_path'],
-               custom_callbacks=[])
+               policy='none',
+               saved_pickles_path=None,
+               custom_callbacks=[lr_finder_callback])
+    
+    lr_finder_callback.plot()
+    plt.show()
 
 
 if __name__ == '__main__':

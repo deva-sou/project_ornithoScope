@@ -58,3 +58,6 @@ class LRFinder(Callback):
         ax.set_xscale('log')
         ax.xaxis.set_major_formatter(plt.FormatStrFormatter('%.0e'))
         ax.plot(self.lrs, self.losses)
+    
+    def print(self):
+        print(self.lrs, self.losses)
