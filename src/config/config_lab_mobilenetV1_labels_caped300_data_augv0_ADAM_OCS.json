@@ -20,11 +20,11 @@
 
     "train": {
         "train_times":          1,
-        "pretrained_weights":   "data/saved_weights/new_weights/MobileNet_caped300_data_aug_v0_ADAM_OCS_bestLoss.h5",
+        "pretrained_weights":   "data/saved_weights/new_weights/MobileNet_caped300_data_aug_v0_ADAM_OCS_9000_bestLoss.h5",
         "freeze":               false,
         "batch_size":           16,
         "learning_rate":        1e-3,
-        "nb_epochs":            20,
+        "nb_epochs":            50,
 
         "workers":              12,
         "max_queue_size":       40,
@@ -39,8 +39,8 @@
             "decay":                        0.0,
             "lr_scheduler": {
                 "name":                     "OneCycleScheduler",
-                "lr_max":                   1e-3,
-                "steps":                    1000,
+                "lr_max":                   1e-2,
+                "steps":                    3600,
                 "mom_min":                  0.85,
                 "mom_max":                  0.95,
                 "phase_1_pct":              0.3,
@@ -55,7 +55,7 @@
 
         "augmentation":         "v0",
 
-        "saved_weights_name":   "data/saved_weights/new_weights/MobileNet_caped300_data_aug_v0_ADAM_OCS.h5"
+        "saved_weights_name":   "data/saved_weights/new_weights/MobileNet_caped300_data_aug_v0_ADAM_OCS_9000.h5"
     },
 
     "valid": {
