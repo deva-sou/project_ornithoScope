@@ -1,0 +1,5 @@
+config/config_to_train/RMSprop_CDR_batchsize32.json
+config/config_to_train/SGD_sansES_CDR_batchsize32.json
+config/config_to_train/Adam_sansES_CDR_batchsize32.json
+config/config_to_train/RMSprop_sansES_CDR_batchsize32.json
+config/config_to_train/RMSprop_OCS_sansCB_32batchsize.json

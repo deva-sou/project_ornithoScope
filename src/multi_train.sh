@@ -1,3 +1,4 @@
+
 # Get configs_list_path
 configs_list_path=$1
 
@@ -27,11 +28,11 @@ do
         echo
         echo "Starting a new training session?"
         { # Try to start tmux 0
-            tmux new-session -s 0 -d "source ../venv_ornithoscope/bin/activate ; export CUDA_VISIBLE_DEVICES=0 ; python3 train.py -c $config_path" &&
+            tmux new-session -s "DL_TRAIN_0" -d "source ../venv_ornithoscope/bin/activate ; export CUDA_VISIBLE_DEVICES=0 ; python3 train.py -c $config_path" &&
             waiting=false &&
             continue
         } || { # Try to start tmux 1
-            tmux new-session -s 1 -d "source ../venv_ornithoscope/bin/activate ; export CUDA_VISIBLE_DEVICES=1 ; python3 train.py -c $config_path" &&
+            tmux new-session -s "DL_TRAIN_1" -d "source ../venv_ornithoscope/bin/activate ; export CUDA_VISIBLE_DEVICES=1 ; python3 train.py -c $config_path" &&
             waiting=false &&
             continue
         } || { # No one is free, wait

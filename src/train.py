@@ -76,7 +76,7 @@ def _main_(args):
     
     ###############################
     #   Construct the model 
-    ###############################
+    ###############################d
 
     yolo = YOLO(backend=config['model']['backend'],
                 input_size=(config['model']['input_size_h'], config['model']['input_size_w']),
