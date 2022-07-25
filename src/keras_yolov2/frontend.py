@@ -15,6 +15,7 @@ from .map_evaluation import MapEvaluation
 from .preprocessing import BatchGenerator
 from .utils import decode_netout, import_feature_extractor, import_dynamically
 from .yolo_loss import YoloLoss
+from .one_cycle_scheduler import OneCycleScheduler
 
 
 class YOLO(object):
@@ -154,7 +155,7 @@ class YOLO(object):
         # Compile the model
         ############################################
 
-        optimizer = YOLO.create_optimizer(optimizer_config, learning_rate)
+        optimizer, lr_callbacks = YOLO.create_optimizer(optimizer_config, learning_rate)
 
         loss_yolo = YoloLoss(self._anchors, (self._grid_w, self._grid_h), self._batch_size,
                              lambda_coord=coord_scale, lambda_noobj=no_object_scale, lambda_obj=object_scale,
@@ -200,7 +201,7 @@ class YOLO(object):
                                          iou_threshold=iou_threshold,
                                          score_threshold=score_threshold)
 
-        callbacks = [ckp_best_loss] # buggy callbacks : ckp_saver, tensorboard_cb, map_evaluator_cb
+        callbacks = [ckp_best_loss] + lr_callbacks # buggy callbacks : ckp_saver, tensorboard_cb, map_evaluator_cb
         if early_stop:
             callbacks.append(early_stop_cb)
 
@@ -275,14 +276,14 @@ class YOLO(object):
 
     def create_optimizer(optimizer_config, default_lr):
         """
-        Instanciate an optimizer corresponding to `optimizer_config` dict.
+        Initialize an optimizer corresponding to `optimizer_config` dict.
         """
 
         if not 'name' in optimizer_config.keys():
             raise Exception('Optimizer name not indicated')
         
         # Create learning-rate scheduler
-        lr_scheduler = YOLO.create_lr_scheduler(optimizer_config['lr_scheduler'], default_lr)
+        lr_scheduler, lr_callbacks = YOLO.create_lr_scheduler(optimizer_config['lr_scheduler'], default_lr)
 
         if optimizer_config['name'] == 'Adam':
             # Parse Adam arguments
@@ -291,26 +292,26 @@ class YOLO(object):
             epsilon = float(optimizer_config.get('epsilon', 1e-08))
             decay = float(optimizer_config.get('decay', 0.0))
 
-            # Instanciate Adam
+            # Initialize Adam
             return Adam(
                     learning_rate=lr_scheduler,
                     beta_1=beta_1,
                     beta_2=beta_2,
                     epsilon=epsilon,
                     decay=decay
-                )
+                ), lr_callbacks
         
         if optimizer_config['name'] == 'SGD':
             # Parse SGD arguments
             momentum = float(optimizer_config.get('momentum', 0.0))
             nesterov = bool(optimizer_config.get('nesterov', False))
 
-            # Instanciate SGD
+            # Initialize SGD
             return SGD(
                     learning_rate=lr_scheduler,
                     momentum=momentum,
                     nesterov=nesterov
-                )
+                ), lr_callbacks
 
         if optimizer_config['name'] == 'RMSprop':
             # Parse RMSprop arguments
@@ -319,28 +320,28 @@ class YOLO(object):
             epsilon = float(optimizer_config.get('epsilon', 1e-07))
             centered = optimizer_config.get('centered', False)
 
-            # Instanciate RMSprop
+            # Initialize RMSprop
             return RMSprop(
                     learning_rate=lr_scheduler,
                     rho=rho,
                     momentum=momentum,
                     epsilon=epsilon,
                     centered=centered
-                )
+                ), lr_callbacks
         
         # Incorrect optimizer name
         raise Exception('Optimizer name \'%s\' is not valid, should be Adam, SGD or RMSprop' % optimizer_config['name'])
 
     def create_lr_scheduler(lr_scheduler_config, default_lr):
         """
-        Intanciate learing-rate scheduler corresponding to `lr_scheduler_config` dict.
+        Initialize learing-rate scheduler corresponding to `lr_scheduler_config` dict.
         """
         
         # Empty scheduler and None scheduler
         if not 'name' in lr_scheduler_config.keys():
-            return default_lr
+            return default_lr, []
         if lr_scheduler_config['name'] in ('None', 'none'):
-            return default_lr
+            return default_lr, []
         
 
         if lr_scheduler_config['name'] in ('CosineDecayRestarts', 'CDR'):
@@ -351,14 +352,14 @@ class YOLO(object):
             m_mul = float(lr_scheduler_config.get('m_mul', 1.0))
             alpha = float(lr_scheduler_config.get('alpha', 0.0))
 
-            # Instanciate CosineDecayRestarts
+            # Initialize CosineDecayRestarts
             return CosineDecayRestarts(
                     initial_learning_rate=initial_learning_rate,
                     first_decay_steps=first_decay_steps,
                     t_mul=t_mul,
                     m_mul=m_mul,
                     alpha=alpha
-                )
+                ), []
         
         if lr_scheduler_config['name'] in ('ExponentialDecay', 'ED'):
             # Parse ExponentialDecay arguments
@@ -367,15 +368,27 @@ class YOLO(object):
             decay_rate = float(lr_scheduler_config.get('decay_rate', 0.96))
             staircase = bool(lr_scheduler_config.get('staircase', False))
 
-            # Intanciate ExponentialDecay
+            # Initialize ExponentialDecay
             return ExponentialDecay(
                     initial_learning_rate=initial_learning_rate,
                     decay_steps=decay_steps,
                     decay_rate=decay_rate,
                     staircase=staircase
-                )
+                ), []
 
-        raise Exception('Learning-rate scheduler name \'%s\' is not valid, should be None, CosineDecayRestarts or ExponentialDecay' % lr_scheduler_config['name'])       
+        if lr_scheduler_config['name'] in ('OneCycleScheduler', 'OCS'):
+            # Parse OneCycleScheduler arguments
+            lr_max = float(lr_scheduler_config.get('lr_max', 1e-3))
+            steps = int(lr_scheduler_config.get('steps', 1000))
+            mom_min = float(lr_scheduler_config.get('mom_min', 0.85))
+            mom_max = float(lr_scheduler_config.get('mom_max', 0.95))
+            phase_1_pct = float(lr_scheduler_config.get('phase_1_pct', 0.3))
+            div_factor = float(lr_scheduler_config.get('div_factor', 25.0))
+
+            # Initialize OneCycleScheduler
+            return default_lr, [OneCycleScheduler(lr_max, steps, mom_min, mom_max, phase_1_pct, div_factor)]
+
+        raise Exception('Learning-rate scheduler name \'%s\' is not valid, should be None, CosineDecayRestarts, ExponentialDecay or OneCycleScheduler' % lr_scheduler_config['name'])       
 
 
     @property
