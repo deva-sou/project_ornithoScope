@@ -23,6 +23,13 @@ class CosineAnnealer:
 
 class OneCycleScheduler(Callback):
     """
+    Callback that schedules the learning rate on a 1cycle policy as per Leslie Smith's paper(https://arxiv.org/pdf/1803.09820.pdf).
+    If the model supports a momentum parameter, it will also be adapted by the schedule.
+    The implementation adopts additional improvements as per the fastai library: https://docs.fast.ai/callbacks.one_cycle.html, where
+    only two phases are used and the adaptation is done using cosine annealing.
+    In phase 1 the LR increases and momentum decreases from.
+    In the second phase the LR decreases and momemtum increase.
+    By default the phases are not of equal length, with the phase 1 percentage controlled by the parameter phase1_pct.
     """
 
     def __init__(self, lr_max, steps, mom_min=0.85, mom_max=0.95, phase_1_pct=0.3, div_factor=25.):
