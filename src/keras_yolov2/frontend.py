@@ -102,8 +102,8 @@ class YOLO(object):
               coord_scale,
               class_scale,
               policy,
-              saved_pickles_path,
               optimizer_config,
+              saved_pickles_path=None,
               saved_weights_name='best_weights.h5',
               workers=3,
               max_queue_size=8,
@@ -146,7 +146,7 @@ class YOLO(object):
         train_generator = BatchGenerator(train_imgs,
                                          generator_config,
                                          norm=self._feature_extractor.normalize,
-                                         policy_container = policy)
+                                         policy_container=policy)
         valid_generator = BatchGenerator(valid_imgs,
                                          generator_config,
                                          norm=self._feature_extractor.normalize,
@@ -220,11 +220,12 @@ class YOLO(object):
                                   max_queue_size=max_queue_size).history
         
         # Save hisotry as pickle
-        pickle_file_path = f'{self._saved_pickles_path}/history/history_{root}_bestLoss{ext}.p'
-        pickel_dir_path ='/'.join(pickle_file_path.split('/')[:-1])
-        if not os.path.exists(pickel_dir_path):
-            os.makedirs(pickel_dir_path)
-        pickle.dump(history, open(pickle_file_path, "wb"))
+        if self._saved_pickles_path != None:
+            pickle_file_path = f'{self._saved_pickles_path}/history/history_{root}_bestLoss{ext}.p'
+            pickel_dir_path ='/'.join(pickle_file_path.split('/')[:-1])
+            if not os.path.exists(pickel_dir_path):
+                os.makedirs(pickel_dir_path)
+            pickle.dump(history, open(pickle_file_path, "wb"))
 
     def predict(self, image, iou_threshold=0.5, score_threshold=0.5):
 

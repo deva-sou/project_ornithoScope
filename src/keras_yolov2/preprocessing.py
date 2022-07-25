@@ -167,7 +167,6 @@ class BatchGenerator(Sequence):
             'v2':policies.PolicyContainer(policies.policies_v2()),
             'v3':policies.PolicyContainer(policies.policies_v3())}
         policy_chosen = self._policy_container.lower()
-        print('\npolicy_chosen: ',policy_chosen)
         if policy_chosen in data_aug_policies:
             return data_aug_policies.get(policy_chosen)
         elif policy_chosen == 'none':
@@ -177,7 +176,7 @@ class BatchGenerator(Sequence):
             print("Wrong policy for data augmentation")
             print('Choose beetween:\n')
             print(list(data_aug_policies.keys()))
-            exit(0)
+            exit(1)
     
     def num_classes(self):
         return len(self._config['LABELS'])

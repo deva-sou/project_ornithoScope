@@ -6,11 +6,13 @@ import os
 
 import numpy as np
 import tensorflow as tf
+import matplotlib.pyplot as plt
 
 from keras_yolov2.frontend import YOLO
-from keras_yolov2.preprocessing import parse_annotation_csv
+from keras_yolov2.preprocessing import BatchGenerator, parse_annotation_csv
 from keras_yolov2.utils import enable_memory_growth
 from keras_yolov2.learning_rate_finder import LRFinder
+from keras_yolov2.yolo_loss import YoloLoss
 
 argparser = argparse.ArgumentParser(
     description='Train and validate YOLO_v2 model on any dataset')
@@ -29,13 +31,18 @@ def _main_(args):
     with open(config_path) as config_buffer:
         config = json.loads(config_buffer.read())
 
-    # Get paths
+    ###############################
+    #   Parse the annotations 
+    ###############################
+    split = False
+    # parse annotations of the training set
     train_imgs, train_labels = parse_annotation_csv(config['data']['train_csv_file'],
                                                     config['model']['labels'],
                                                     config['data']['base_path'])
+
+    # parse annotations of the validation set, if any, otherwise split the training set
     valid_path = config['data']['valid_csv_file']
 
-    # Find validation set
     if os.path.exists(valid_path):
         print(f"\n \nParsing {valid_path.split('/')[-1]}")
         valid_imgs, seen_valid_labels = parse_annotation_csv(valid_path,
@@ -45,7 +52,6 @@ def _main_(args):
     else:
         split = True
 
-    # Split dataset because no validation set was correctly refered
     if split:
         train_valid_split = int(0.85 * len(train_imgs))
         np.random.shuffle(train_imgs)
@@ -53,9 +59,12 @@ def _main_(args):
         valid_imgs = train_imgs[train_valid_split:]
         train_imgs = train_imgs[:train_valid_split]
         
-    # Labels
     if len(config['model']['labels']) > 0:
         overlap_labels = set(config['model']['labels']).intersection(set(train_labels.keys()))
+
+        # print('Seen labels:\t', train_labels)
+        # print('Given labels:\t', config['model']['labels'])
+        # print('Overlap labels:\t', overlap_labels)
 
         if len(overlap_labels) < len(config['model']['labels']):
             print('Some labels have no annotations! Please revise the list of labels in the config.json file!')
@@ -66,8 +75,12 @@ def _main_(args):
         with open("labels.json", 'w') as outfile:
             json.dump({"labels": list(train_labels.keys())}, outfile)
 
+    # print('Seen labels:\t', train_labels)
+    
+    ###############################
+    #   Construct the model 
+    ###############################
 
-    # Build model
     yolo = YOLO(backend=config['model']['backend'],
                 input_size=(config['model']['input_size_h'], config['model']['input_size_w']),
                 labels=config['model']['labels'],
@@ -75,14 +88,18 @@ def _main_(args):
                 gray_mode=config['model']['gray_mode'],
                 freeze=config['train']['freeze'])
 
-    # Load weihgts
+    #########################################
+    #   Load the pretrained weights (if any) 
+    #########################################
+
     if os.path.exists(config['train']['pretrained_weights']):
         print("Loading pre-trained weights in", config['train']['pretrained_weights'])
         yolo.load_weights(config['train']['pretrained_weights'])
 
-    lr_finder_callback = LRFinder(start_lr=1e-7, end_lr=10, max_steps=100, smoothing=0.9)
+    ###############################
+    #   Start the training process 
+    ###############################
 
-    # Start finder
     yolo.train(train_imgs=train_imgs,
                valid_imgs=valid_imgs,
                train_times=config['train']['train_times'],
@@ -103,7 +120,7 @@ def _main_(args):
                score_threshold=config['valid']['score_threshold'],
                policy=config['train']['augmentation'],
                saved_pickles_path = config['data']['saved_pickles_path'],
-               custom_callbacks=[lr_finder_callback])
+               custom_callbacks=[])
 
 
 if __name__ == '__main__':

@@ -24,7 +24,7 @@
         "freeze":               false,
         "batch_size":           16,
         "learning_rate":        1e-3,
-        "nb_epochs":            150,
+        "nb_epochs":            20,
 
         "workers":              12,
         "max_queue_size":       40,
@@ -38,11 +38,13 @@
             "epsilon":                      1e-08,
             "decay":                        0.0,
             "lr_scheduler": {
-                "name":                     "ED",
-                "initial_learning_rate":    1e-4,
-                "decay_steps":              1000,
-                "decay_rate":               0.96,
-                "staircase":                false
+                "name":                     "OneCycleScheduler",
+                "lr_max":                   1e-3,
+                "steps":                    1000,
+                "mom_min":                  0.85,
+                "mom_max":                  0.95,
+                "phase_1_pct":              0.3,
+                "div_factor":               25.0
             }
         },
 
