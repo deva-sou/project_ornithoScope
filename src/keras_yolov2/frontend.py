@@ -108,7 +108,7 @@ class YOLO(object):
               saved_weights_name='best_weights.h5',
               workers=3,
               max_queue_size=8,
-              early_stop=True,
+              early_stop=False,
               custom_callback=[],
               tb_logdir="./",
               iou_threshold=0.5,
@@ -195,7 +195,7 @@ class YOLO(object):
                                     verbose=1,
                                     period=10)
         
-        #en dessous on ne l'a plus utilisé pour les callbacks
+    
         
         map_evaluator_cb = MapEvaluation(self, valid_generator,
                                          save_best=False,
@@ -322,7 +322,7 @@ class YOLO(object):
         
         if optimizer_config['name'] == 'SGD':
             # Parse SGD arguments
-            momentum = float(optimizer_config.get('momentum', 0.0))
+            momentum = float(optimizer_config.get('momentum', 0.9))
             nesterov = bool(optimizer_config.get('nesterov', False))
 
             # Instanciate SGD
@@ -366,8 +366,8 @@ class YOLO(object):
         if lr_scheduler_config['name'] in ('CosineDecayRestarts', 'CDR'):
             # Parse CosineDecayRestarts arguments
             initial_learning_rate = float(lr_scheduler_config.get('initial_learning_rate', 1e-4))
-            first_decay_steps = int(lr_scheduler_config.get('first_decay_steps', 1000))
-            t_mul = float(lr_scheduler_config.get('t_mul', 2.0))
+            first_decay_steps = int(lr_scheduler_config.get('first_decay_steps', 1000))#on peut tester à 2000 et 5000
+            t_mul = float(lr_scheduler_config.get('t_mul', 2.0))#à tester à 1
             m_mul = float(lr_scheduler_config.get('m_mul', 1.0))
             alpha = float(lr_scheduler_config.get('alpha', 0.0))
 

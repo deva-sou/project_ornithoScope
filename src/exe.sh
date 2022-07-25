@@ -12,3 +12,7 @@ python3 predict.py -c config/data_aug_policies/config_lab_mobilenetV1_labels_cap
 
 # Image/Video/Images folder prediction
 python3 predict.py -c config/data_aug_policies/config_lab_mobilenetV1_labels_caped300_data_augv0.json -i <path to file/directory>
+
+#A essayer pour tracer courbes loss et val_loss après un entrainement
+
+python3 history.py -p data/pickles/history/history_data/saved_weights/new_file_RMS_CDR_bestLoss.h5.p
