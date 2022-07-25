@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 import pickle
 import tensorflow as tf
+import matplotlib.pyplot as plt
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard, ReduceLROnPlateau
 from tensorflow.keras.layers import Reshape, Conv2D, Input
 from tensorflow.keras.models import Model
@@ -226,6 +227,10 @@ class YOLO(object):
             if not os.path.exists(pickel_dir_path):
                 os.makedirs(pickel_dir_path)
             pickle.dump(history, open(pickle_file_path, "wb"))
+        
+        if len(lr_callbacks) > 0:
+            lr_callbacks[0].plot()
+            plt.show()
 
     def predict(self, image, iou_threshold=0.5, score_threshold=0.5):
 
