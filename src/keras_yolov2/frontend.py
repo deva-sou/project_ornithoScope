@@ -228,10 +228,6 @@ class YOLO(object):
             if not os.path.exists(pickel_dir_path):
                 os.makedirs(pickel_dir_path)
             pickle.dump(history, open(pickle_file_path, "wb"))
-        
-        if len(lr_callbacks) > 0:
-            lr_callbacks[0].plot()
-            plt.show()
 
     def predict(self, image, iou_threshold=0.5, score_threshold=0.5):
 
