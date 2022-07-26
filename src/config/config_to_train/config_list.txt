@@ -1,1 +1,0 @@
-config/config_to_train/ADAM_OCS_v3.json
