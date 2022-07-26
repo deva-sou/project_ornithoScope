@@ -6,6 +6,7 @@ import numpy as np
 import pickle
 import tensorflow as tf
 import matplotlib.pyplot as plt
+from keras_yolov2.anti_nan import AntiNaN
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard, ReduceLROnPlateau
 from tensorflow.keras.layers import Reshape, Conv2D, Input
 from tensorflow.keras.models import Model
@@ -194,7 +195,7 @@ class YOLO(object):
                                     verbose=1,
                                     period=10)
         
-        #en dessous on ne l'a plus utilisé pour les callbacks
+        nan_callback = AntiNaN()
         
         map_evaluator_cb = MapEvaluation(self, valid_generator,
                                          save_best=False,
@@ -203,7 +204,7 @@ class YOLO(object):
                                          iou_threshold=iou_threshold,
                                          score_threshold=score_threshold)
 
-        callbacks = [ckp_best_loss] + lr_callbacks + custom_callbacks # buggy callbacks : ckp_saver, tensorboard_cb, map_evaluator_cb
+        callbacks = [ckp_best_loss, nan_callback] + lr_callbacks + custom_callbacks # buggy callbacks : ckp_saver, tensorboard_cb, map_evaluator_cb
         if early_stop:
             callbacks.append(early_stop_cb)
 
