@@ -81,12 +81,12 @@ def _main_(args):
 
     config['train']['optimizer']['lr_scheduler']['name'] = 'None'
 
-    lr_finder_callback = LRFinder(start_lr=1e-7, end_lr=1, max_steps=150, smoothing=0.9)
+    lr_finder_callback = LRFinder(start_lr=1e-7, end_lr=10, max_steps=150, smoothing=0.9)
 
     yolo.train(train_imgs=train_imgs,
                valid_imgs=valid_imgs,
-               train_times=1,
-               nb_epochs=1,
+               train_times=config['train']['train_times'],
+               nb_epochs=config['train']['nb_epochs'],
                learning_rate=config['train']['learning_rate'],
                batch_size=config['train']['batch_size'],
                object_scale=config['train']['object_scale'],
