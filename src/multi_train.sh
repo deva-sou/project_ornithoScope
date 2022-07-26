@@ -7,7 +7,7 @@ if [ ! -f "$configs_list_path" ]; then
     exit 1
 fi
 
-while [ $(cat $configs_list_path | wc -l) -gt 0 ];
+while [ $(cat $configs_list_path | wc -c) -gt 0 ];
 do
     # Extract first config_path from the list
     config_path=$(cat $configs_list_path | head -n 1)
