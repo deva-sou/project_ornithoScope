@@ -1,14 +1,1 @@
-config/config_to_train/test1.json
-config/config_to_train/test2.json
-config/config_to_train/test3.json
-config/config_to_train/test4.json
-config/config_to_train/test5.json
-config/config_to_train/test6.json
-config/config_to_train/test7.json
-config/config_to_train/test8.json
-config/config_to_train/test9.json
-config/config_to_train/test10.json
-config/config_to_train/test11.json
-config/config_to_train/test12.json
-config/config_to_train/test13.json
-config/config_to_train/test14.json
+config/config_to_train/ADAM_OCS_v3.json
