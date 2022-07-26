@@ -29,15 +29,17 @@ do
         { # Try to start tmux 0
             tmux new-session -s "DL_TRAIN_0" -d "source ../venv_ornithoscope/bin/activate ; export CUDA_VISIBLE_DEVICES=0 ; python3 train.py -c $config_path" &&
             waiting=false &&
+            tmux_used=0 &&
             continue
         } || { # Try to start tmux 1
             tmux new-session -s "DL_TRAIN_1" -d "source ../venv_ornithoscope/bin/activate ; export CUDA_VISIBLE_DEVICES=1 ; python3 train.py -c $config_path" &&
             waiting=false &&
+            tmux_used=1 &&
             continue
         } || { # No one is free, wait
             echo "All sessions are busy. Retrying in 60s..."
             sleep 60
         }
     done
-    echo "Training session started."
+    echo "[DL_TRAIN_$tmux_used] Training session started."
 done
