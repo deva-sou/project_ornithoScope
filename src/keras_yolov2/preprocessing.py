@@ -15,10 +15,9 @@ from bbaug.policies import policies
 
 
 def parse_annotation_xml(ann_dir, img_dir, labels=[]):
-    # This parser is utilized on VOC dataset
+    # This parser is used on VOC dataset
     all_imgs = []
     seen_labels = {}
-    print(ann_dir)
     ann_files = os.listdir(ann_dir)
     for ann in tqdm(sorted(ann_files)):
         img = {'object': []}
@@ -65,8 +64,6 @@ def parse_annotation_xml(ann_dir, img_dir, labels=[]):
                                 else:
                                     img['object'] += [obj]
                                 
-
-        #if len(img['object']) > 0:
         all_imgs += [img]
 
     return all_imgs, seen_labels
@@ -76,7 +73,6 @@ def parse_annotation_csv(csv_file, labels=[], base_path=""):
     # This is a generic parser that uses CSV files
     # File_path,xmin,ymin,xmax,ymax,class
 
-    #print("parsing {} csv file can took a while, wait please.".format(csv_file))
     all_imgs = []
     seen_labels = {}
 
@@ -151,9 +147,8 @@ class BatchGenerator(Sequence):
         self._anchors = [BoundBox(0, 0, config['ANCHORS'][2 * i], config['ANCHORS'][2 * i + 1])
                          for i in range(int(len(config['ANCHORS']) // 2))]
 
-        # self.policy_container = policies.PolicyContainer(policies.policies_v3())
         self._policy_chosen = self.get_policy_container()
-        #print(self._jitter)
+        
         if shuffle:
             np.random.shuffle(self._images)
     
@@ -207,83 +202,85 @@ class BatchGenerator(Sequence):
         return image, '/'.join(self._images[i]['filename'].split('/')[-2:])
 
     def __getitem__(self, idx):
+        # Set lower an upper id for this batch
         l_bound = idx * self._config['BATCH_SIZE']
         r_bound = (idx + 1) * self._config['BATCH_SIZE']
 
+        # Fix upper bound grate than number of image
         if r_bound > len(self._images):
             r_bound = len(self._images)
             l_bound = r_bound - self._config['BATCH_SIZE']
 
-        instance_count = 0
+        # Initialize batch's input and output
         x_batch = np.zeros((r_bound - l_bound, self._config['IMAGE_H'], self._config['IMAGE_W'],
-                            self._config['IMAGE_C']))  # input images
-
+                            self._config['IMAGE_C']))
         y_batch = np.zeros((r_bound - l_bound, self._config['GRID_H'], self._config['GRID_W'], self._config['BOX'],
-                            4 + 1 + len(self._config['LABELS'])))  # desired network output
+                            4 + 1 + len(self._config['LABELS'])))
+
 
         anchors_populated_map = np.zeros((r_bound - l_bound, self._config['GRID_H'], self._config['GRID_W'],
                                           self._config['BOX']))
 
+        for instance_count, train_instance in enumerate(self._images[l_bound:r_bound]):
+            # Augment input image and bounding boxes' attributes
+            img, all_bbs = self.aug_image(train_instance)
 
-        for train_instance in self._images[l_bound:r_bound]:
-            # augment input image and fix object's position and size
-            img, all_objs = self.aug_image(train_instance)
+            for bb in all_bbs:
+                # Check if it is a valid boudning box
+                if bb['xmax'] <= bb['xmin'] or bb['ymax'] <= bb['ymin'] or not bb['name'] in self._config['LABELS']:
+                    continue
 
-            # if len(all_objs) == 0:
-            #    print("eeee")
+                
+                scale_w = float(self._config['IMAGE_W']) / self._config['GRID_W']
+                scale_h = float(self._config['IMAGE_H']) / self._config['GRID_H']
 
-            for obj in all_objs:
-                # check if it is a valid annotion
-                if obj['xmax'] > obj['xmin'] and obj['ymax'] > obj['ymin'] and obj['name'] in self._config['LABELS']:
-                    scale_w = float(self._config['IMAGE_W']) / self._config['GRID_W']
-                    scale_h = float(self._config['IMAGE_H']) / self._config['GRID_H']
-                    # get which grid cell it is from
-                    obj_center_x = (obj['xmin'] + obj['xmax']) / 2
-                    obj_center_x = obj_center_x / scale_w
-                    obj_center_y = (obj['ymin'] + obj['ymax']) / 2
-                    obj_center_y = obj_center_y / scale_h
+                # get which grid cell it is from
+                obj_center_x = (bb['xmin'] + bb['xmax']) / 2
+                obj_center_x = obj_center_x / scale_w
+                obj_center_y = (bb['ymin'] + bb['ymax']) / 2
+                obj_center_y = obj_center_y / scale_h
 
-                    obj_grid_x = int(np.floor(obj_center_x))
-                    obj_grid_y = int(np.floor(obj_center_y))
+                obj_grid_x = int(np.floor(obj_center_x))
+                obj_grid_y = int(np.floor(obj_center_y))
 
-                    if obj_grid_x < self._config['GRID_W'] and obj_grid_y < self._config['GRID_H']:
-                        obj_indx = self._config['LABELS'].index(obj['name'])
+                if obj_grid_x < self._config['GRID_W'] and obj_grid_y < self._config['GRID_H']:
+                    obj_indx = self._config['LABELS'].index(bb['name'])
 
-                        obj_w = (obj['xmax'] - obj['xmin']) / scale_w
-                        obj_h = (obj['ymax'] - obj['ymin']) / scale_h
+                    obj_w = (bb['xmax'] - bb['xmin']) / scale_w
+                    obj_h = (bb['ymax'] - bb['ymin']) / scale_h
 
-                        box = [obj_center_x, obj_center_y, obj_w, obj_h]
+                    box = [obj_center_x, obj_center_y, obj_w, obj_h]
 
-                        # find the anchor that best predicts this box
-                        # TODO: check f this part below is working correctly
-                        best_anchor_idx = -1
-                        max_iou = -1
+                    # find the anchor that best predicts this box
+                    # TODO: check f this part below is working correctly
+                    best_anchor_idx = -1
+                    max_iou = -1
 
-                        shifted_box = BoundBox(0, 0, obj_w, obj_h)
+                    shifted_box = BoundBox(0, 0, obj_w, obj_h)
 
-                        for i in range(len(self._anchors)):
-                            anchor = self._anchors[i]
-                            iou = bbox_iou(shifted_box, anchor)
+                    for i in range(len(self._anchors)):
+                        anchor = self._anchors[i]
+                        iou = bbox_iou(shifted_box, anchor)
 
-                            if max_iou < iou:
-                                best_anchor_idx = i
-                                max_iou = iou
+                        if max_iou < iou:
+                            best_anchor_idx = i
+                            max_iou = iou
 
-                        # assign ground truth x, y, w, h, confidence and class probs to y_batch
-                        self._change_obj_position(y_batch, anchors_populated_map,
-                                                  [instance_count, obj_grid_y, obj_grid_x, best_anchor_idx, obj_indx],
-                                                  box, max_iou)
+                    # assign ground truth x, y, w, h, confidence and class probs to y_batch
+                    self._change_obj_position(y_batch, anchors_populated_map,
+                                                [instance_count, obj_grid_y, obj_grid_x, best_anchor_idx, obj_indx],
+                                                box, max_iou)
 
             # assign input image to x_batch
             if self._norm is not None:
                 x_batch[instance_count] = self._norm(img)
             else:
                 # plot image and bounding boxes for sanity check
-                for obj in all_objs:
-                    if obj['xmax'] > obj['xmin'] and obj['ymax'] > obj['ymin']:
-                        cv2.rectangle(img[..., ::-1], (obj['xmin'], obj['ymin']), (obj['xmax'], obj['ymax']),
+                for bb in all_bbs:
+                    if bb['xmax'] > bb['xmin'] and bb['ymax'] > bb['ymin']:
+                        cv2.rectangle(img[..., ::-1], (bb['xmin'], bb['ymin']), (bb['xmax'], bb['ymax']),
                                       (255, 0, 0), 3)
-                        cv2.putText(img[..., ::-1], obj['name'], (obj['xmin'] + 2, obj['ymin'] + 12), 0,
+                        cv2.putText(img[..., ::-1], bb['name'], (bb['xmin'] + 2, bb['ymin'] + 12), 0,
                                     1.2e-3 * img.shape[0], (0, 255, 0), 2)
 
                 x_batch[instance_count] = img
@@ -315,8 +312,6 @@ class BatchGenerator(Sequence):
             np.random.shuffle(self._images)
 
     def aug_image(self, train_instance):
-        jitter = self._jitter
-        #print('self jitter', jitter)
         image_name = train_instance['filename']
         if self._config['IMAGE_C'] == 1:
             image = cv2.imread(image_name, cv2.IMREAD_GRAYSCALE)
@@ -326,14 +321,13 @@ class BatchGenerator(Sequence):
             raise ValueError("Invalid number of image channels.")
 
         if image is None:
-            print('Cannot find ', image_name)
+            raise Exception('Cannot find : ' + image_name)
 
         h = image.shape[0]
         w = image.shape[1]
         all_objs = copy.deepcopy(train_instance['object'])
-        #print(jitter)
-        if jitter:
-            #print('jitter true')
+
+        if self._jitter:
             bbs = []
             labels_bbs = []
             for i, obj in enumerate(all_objs):
