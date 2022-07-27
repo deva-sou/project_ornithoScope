@@ -1,6 +1,7 @@
 import copy
 from email import policy
 import os
+from time import time
 import xml.etree.ElementTree as et
 
 import cv2
@@ -8,7 +9,9 @@ import numpy as np
 from imgaug import augmenters as iaa
 from imgaug.augmentables import BoundingBox, BoundingBoxesOnImage
 from tensorflow.keras.utils import Sequence
+from tensorflow.keras.backend import sigmoid
 from tqdm import tqdm
+from perlin_noise import PerlinNoise
 
 from .utils import BoundBox, bbox_iou
 from bbaug.policies import policies
@@ -84,12 +87,8 @@ def parse_annotation_csv(csv_file, labels=[], base_path=""):
             if line == "":
                 continue
             try:
-                fname, xmin, ymin, xmax, ymax, obj_name, width, height = line.strip().split(",") # ajouter ici height and width
-                #print('fname',fname,'obj name', obj_name)
+                fname, xmin, ymin, xmax, ymax, obj_name, width, height = line.strip().split(",")
                 fname = os.path.join(base_path, fname)
-
-                #image = cv2.imread(fname) # supprimer ça pour éviter la lecture de l'image
-                #height, width, _ = image.shape # ça aussi
 
                 img = dict()
                 img['object'] = []
@@ -97,7 +96,8 @@ def parse_annotation_csv(csv_file, labels=[], base_path=""):
                 img['width'] = width
                 img['height'] = height
 
-                if obj_name == "":  # if the object has no name, this means that this image is a background image
+                # If the object has no name, this means that this image is a background image
+                if obj_name == "":
                     all_imgs_indices[fname] = count_indice
                     all_imgs.append(img)
                     count_indice += 1
@@ -133,6 +133,95 @@ def parse_annotation_csv(csv_file, labels=[], base_path=""):
     return all_imgs, seen_labels
 
 
+class PersonalPolicy():
+    """
+    Personal augmentation policy.
+    """
+
+    def __init__(self):
+        # Create perlin noise mask
+        noise = PerlinNoise(octaves=80, seed=np.random.randint(1e8))
+        mask_w, mask_h = 1000, 1000
+        print('Creating shadow mask...')
+        self.shadow = np.array([[noise([i / mask_h, j / mask_w]) for j in range(mask_w)] for i in range(mask_h)])
+        print('', end='\r')
+
+    def shadows_augmentation(self, image, amplitude=80, offset=0):
+        """
+        Add perlin noise brightness mask.
+        """
+        h, w = image.shape[:2]
+
+        # Select perlin noise mask area
+        mask_w, mask_h = w // 20, h // 20
+        full_mask_w, full_mask_h = self.shadow.shape
+        x_pos, y_pos = np.random.randint(full_mask_w - mask_w), np.random.randint(full_mask_h - mask_h)
+        shadow = self.shadow[x_pos:x_pos + mask_w, y_pos:y_pos + mask_h]
+
+        # Set mask values between 0 and 255
+        shadow = shadow - np.min(shadow, (0, 1))
+        shadow = shadow / np.max(shadow, (0, 1))
+        shadow = PersonalPolicy.cosine_contraste_augmentation(shadow) * 255.0
+        
+        # Resize mask to image size
+        shadow = shadow.astype('uint8')
+        shadow = cv2.resize(shadow, dsize=(w, h), interpolation=cv2.INTER_CUBIC)
+        shadow = shadow.astype('float') / 127.0 - 1.0
+
+        # Convert RGB to HSV
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        h, s, v = cv2.split(hsv)
+        v = v.astype('float')
+
+        # Recast mask values
+        shadow = amplitude * shadow + offset
+
+        # Apply shadow mask on brightness
+        v += shadow
+        v[v > 255.0] = 255.0
+        v[v < 0.0] = 0.0
+
+        # Convert back HSV to RGB
+        v = v.astype('uint8')
+        final_hsv = cv2.merge((h, s, v))
+        image = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+
+        return image
+
+    def cosine_contraste_augmentation(x: np.ndarray):
+        """
+        x, array of float between 0.0 and 1.0
+        return array of float between 0.0 and 1.0 closer to limits.
+        """
+        return (-np.cos(np.pi * x) + 1) / 2
+
+
+    def modify_brightness(image: np.ndarray, value: int = 30):
+        """
+        Add brightness value to an image
+        """
+
+        # Convert RGB to HSV
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        h, s, v = cv2.split(hsv)
+
+        # Add brightness
+        if value > 0:
+            lim = 255 - value
+            v[v > lim] = 255
+            v[v <= lim] += value
+        # Remove brightness
+        else:
+            v[v < -value] = 0
+            v[v >= -value] += value
+
+        # Convert back HSV to RGB
+        final_hsv = cv2.merge((h, s, v))
+        image = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+
+        return image
+
+
 class BatchGenerator(Sequence):
     def __init__(self, images, config, shuffle=True, jitter=True, norm=None, policy_container='none'):
 
@@ -157,17 +246,24 @@ class BatchGenerator(Sequence):
 
     def get_policy_container(self):
         data_aug_policies = {
-            'v0':policies.PolicyContainer(policies.policies_v0()),
-            'v1':policies.PolicyContainer(policies.policies_v1()),
-            'v2':policies.PolicyContainer(policies.policies_v2()),
-            'v3':policies.PolicyContainer(policies.policies_v3())}
+            'v0' : policies.PolicyContainer(policies.policies_v0()),
+            'v1' : policies.PolicyContainer(policies.policies_v1()),
+            'v2' : policies.PolicyContainer(policies.policies_v2()),
+            'v3' : policies.PolicyContainer(policies.policies_v3())
+        }
+
         policy_chosen = self._policy_container.lower()
         if policy_chosen in data_aug_policies:
             return data_aug_policies.get(policy_chosen)
+        
+        elif policy_chosen == 'personal':
+            return PersonalPolicy()
+
         elif policy_chosen == 'none':
             self._jitter = False
             return None
-        else : 
+
+        else: 
             print("Wrong policy for data augmentation")
             print('Choose beetween:\n')
             print(list(data_aug_policies.keys()))
@@ -284,8 +380,6 @@ class BatchGenerator(Sequence):
                                     1.2e-3 * img.shape[0], (0, 255, 0), 2)
 
                 x_batch[instance_count] = img
-            # increase instance counter in current batch
-            instance_count += 1
 
         return x_batch, y_batch
 
@@ -323,27 +417,44 @@ class BatchGenerator(Sequence):
         if image is None:
             raise Exception('Cannot find : ' + image_name)
 
-        h = image.shape[0]
-        w = image.shape[1]
+        h, w = image.shape[:2]
         all_objs = copy.deepcopy(train_instance['object'])
 
+        # Apply augmentation
         if self._jitter:
             bbs = []
             labels_bbs = []
-            for i, obj in enumerate(all_objs):
+
+            # Convert bouding boxes for the PolicyConatiner
+            for obj in all_objs:
                 xmin = obj['xmin']
                 ymin = obj['ymin']
                 xmax = obj['xmax']
                 ymax = obj['ymax']
-                # use label field to later match it with final boxes
+
                 bbs.append([xmin, ymin, xmax, ymax])
                 labels_bbs.append(self._config['LABELS'].index(obj['name']))
-            # REPLACE WITH AUGMENTATION FROM GOOGLE BRAIN TEAM !
-            # select a random policy from the policy set
-            random_policy = self._policy_chosen.select_random_policy() 
-            image, bbs = self._policy_chosen.apply_augmentation(random_policy, image, bbs, labels_bbs)
 
+            # cv2.imshow('Before augmentation', cv2.resize(image, (w // 3, h // 3)))
 
+            # Use Google Brain Team augmentation
+            if isinstance(self._policy_chosen, policies.PolicyContainer):
+                random_policy = self._policy_chosen.select_random_policy()
+                image, bbs = self._policy_chosen.apply_augmentation(random_policy, image, bbs, labels_bbs)
+            
+            # Use personal augmentation
+            elif isinstance(self._policy_chosen, PersonalPolicy):
+                image = self._policy_chosen.shadows_augmentation(image,
+                                                                amplitude=np.random.randint(50, 100),
+                                                                offset=np.random.randint(-10, 10))
+                # Add labels in first position of bounding boxes
+                for box, label in zip(bbs, labels_bbs):
+                    box.insert(0, label)
+
+            # cv2.imshow('After augmentation', cv2.resize(image, (w // 3, h // 3)))
+            # cv2.waitKey(0)
+            
+            # Recreate bounding boxes
             all_objs = []
             for bb in bbs:
                 obj = {}
@@ -355,13 +466,13 @@ class BatchGenerator(Sequence):
                 all_objs.append(obj)
 
 
-            # resize the image to standard size
+        # Resize the image to standard size
         image = cv2.resize(image, (self._config['IMAGE_W'], self._config['IMAGE_H']))
         if self._config['IMAGE_C'] == 1:
             image = image[..., np.newaxis]
         image = image[..., ::-1]  # make it RGB (it is important for normalization of some backends)
 
-        # fix object's position and size
+        # Fix object's position and size
         for obj in all_objs:
             for attr in ['xmin', 'xmax']:
                 obj[attr] = int(obj[attr] * float(self._config['IMAGE_W']) / w)
@@ -372,3 +483,4 @@ class BatchGenerator(Sequence):
                 obj[attr] = max(min(obj[attr], self._config['IMAGE_H']), 0)
 
         return image, all_objs
+    
