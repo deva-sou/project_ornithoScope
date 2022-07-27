@@ -133,9 +133,9 @@ def parse_annotation_csv(csv_file, labels=[], base_path=""):
     return all_imgs, seen_labels
 
 
-class PersonalPolicy():
+class CustomPolicy():
     """
-    Personal augmentation policy.
+    Custom augmentation policy.
     """
 
     def __init__(self):
@@ -161,7 +161,7 @@ class PersonalPolicy():
         # Set mask values between 0 and 255
         shadow = shadow - np.min(shadow, (0, 1))
         shadow = shadow / np.max(shadow, (0, 1))
-        shadow = PersonalPolicy.cosine_contraste_augmentation(shadow) * 255.0
+        shadow = CustomPolicy.cosine_contraste_augmentation(shadow) * 255.0
         
         # Resize mask to image size
         shadow = shadow.astype('uint8')
@@ -256,8 +256,8 @@ class BatchGenerator(Sequence):
         if policy_chosen in data_aug_policies:
             return data_aug_policies.get(policy_chosen)
         
-        elif policy_chosen == 'personal':
-            return PersonalPolicy()
+        elif policy_chosen == 'custom':
+            return CustomPolicy()
 
         elif policy_chosen == 'none':
             self._jitter = False
@@ -442,8 +442,8 @@ class BatchGenerator(Sequence):
                 random_policy = self._policy_chosen.select_random_policy()
                 image, bbs = self._policy_chosen.apply_augmentation(random_policy, image, bbs, labels_bbs)
             
-            # Use personal augmentation
-            elif isinstance(self._policy_chosen, PersonalPolicy):
+            # Use custom augmentation
+            elif isinstance(self._policy_chosen, CustomPolicy):
                 image = self._policy_chosen.shadows_augmentation(image,
                                                                 amplitude=np.random.randint(50, 100),
                                                                 offset=np.random.randint(-10, 10))

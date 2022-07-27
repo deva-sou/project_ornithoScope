@@ -20,7 +20,7 @@
 
     "train": {
         "train_times":          1,
-        "pretrained_weights":   "data/saved_weights/new_weights/ADAM_OCS_personal_bestLoss.h5",
+        "pretrained_weights":   "data/saved_weights/new_weights/ADAM_OCS_custom_bestLoss.h5",
         "freeze":               false,
         "batch_size":           16,
         "learning_rate":        1e-3,
@@ -53,9 +53,9 @@
         "coord_scale":          1.0,
         "class_scale":          1.0,
 
-        "augmentation":         "personal",
+        "augmentation":         "custom",
 
-        "saved_weights_name":   "data/saved_weights/new_weights/ADAM_OCS_personal.h5"
+        "saved_weights_name":   "data/saved_weights/new_weights/ADAM_OCS_custom.h5"
     },
 
     "valid": {
