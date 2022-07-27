@@ -1,0 +1,65 @@
+{
+    "model" : {
+        "backend":              "MobileNet",
+        "input_size_w":         224,
+        "input_size_h":         224,
+        "gray_mode":            false,
+        "anchors":              [5.49950,8.57597, 9.26930,17.66783, 10.56113,10.43321, 15.44298,23.17856, 34.00303,34.41259],
+        "labels":               ["MESCHA", "SITTOR", "MESBLE", "MESNON", "PINARB", "ACCMOU", "ROUGOR", "VEREUR", "MOIDOM", "TOUTUR", "ECUROU", "PIEBAV", "MULGRI", "CAMPAG", "MESNOI", "MESHUP"],
+        "unwanted_labels":      ["noBird", "unknown"]
+    },
+
+    "data" : {
+        "base_path":            "/home/dams1309/raw_data", 
+        "train_csv_file":       "data/inputs/raw_data/cleaned_labels/input_train_caped300_cleaned.csv",
+        "valid_csv_file":       "",
+        "test_csv_file":        ["data/inputs/input_test.csv"], 
+        "saved_weight_path":    "data/saved_weights/",
+        "saved_pickles_path":   "data/pickles"
+    },
+
+    "train": {
+        "train_times":          1,
+        "pretrained_weights":   "data/saved_weights/new_weights/ADAM_OCS_personal_bestLoss.h5",
+        "freeze":               false,
+        "batch_size":           16,
+        "learning_rate":        1e-3,
+        "nb_epochs":            50,
+
+        "workers":              12,
+        "max_queue_size":       40,
+        "early_stop":           false,
+        "tensorboard_log_dir":  "./logs/1",
+
+        "optimizer": {
+            "name":                         "Adam",
+            "beta_1":                       0.9,
+            "beta_2":                       0.999,
+            "epsilon":                      1e-08,
+            "decay":                        0.0,
+            "lr_scheduler": {
+                "name":                     "OneCycleScheduler",
+                "lr_max":                   1e-3,
+                "steps":                    3600,
+                "mom_min":                  0.85,
+                "mom_max":                  0.95,
+                "phase_1_pct":              0.3,
+                "div_factor":               100.0
+            }
+        },
+
+        "object_scale":         5.0 ,
+        "no_object_scale":      1.0,
+        "coord_scale":          1.0,
+        "class_scale":          1.0,
+
+        "augmentation":         "personal",
+
+        "saved_weights_name":   "data/saved_weights/new_weights/ADAM_OCS_personal.h5"
+    },
+
+    "valid": {
+        "iou_threshold":        0.4,
+        "score_threshold":      0.5
+    }
+}
