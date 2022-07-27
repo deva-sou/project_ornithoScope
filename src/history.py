@@ -26,7 +26,7 @@ def _main_(args):
     steps = [i for i in range(len(loss))]
 
     plt.plot(steps, loss, label='Training loss')
-    plt.plot(steps, val_loss='Validation loss')
+    plt.plot(steps, val_loss, label='Validation loss')
     
     plt.legend()
     plt.show()
