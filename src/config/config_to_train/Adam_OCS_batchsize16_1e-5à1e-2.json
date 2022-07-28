@@ -46,7 +46,7 @@
 
         "augmentation":         "v0",
 
-        "saved_weights_name":   "data/saved_weights/new_weights/Adam_OCS_batchsize16_1e-5à1e-2.h5"
+        "saved_weights_name":   "data/saved_weights/new_weights/Adam_OCS_batchsize16_1e-5à1e-2_v0.h5"
     },
 
     "valid": {
