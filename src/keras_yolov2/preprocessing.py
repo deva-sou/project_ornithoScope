@@ -1,7 +1,4 @@
-import copy
-from email import policy
-import os
-import xml.etree.ElementTree as et
+
 
 import cv2
 import numpy as np
@@ -399,45 +396,40 @@ class BatchGenerator(Sequence):
                 return output_img, new_anno
 
     def get_dataset(anno_dir, img_dir):
-        # class_id = category_name.index('person')
+        class_id = category_name.index('person')
+
         img_paths = []
         annos = []
+        for anno_file in glob.glob(os.path.join(anno_dir, '*.txt')):
+            anno_id = anno_file.split('/')[-1].split('.')[0]
 
-        # for anno_file in glob.glob(os.path.join(anno_dir, '*.txt')):
-        for anno_file in glob.glob(os.path.join(anno_dir, '*.xml')):
-            # anno_id = anno_file.split('/')[-1].split('.')[0]
-            anno_id = anno_file.split('/')[-1].split('x')[0]
-            
             with open(anno_file, 'r') as f:
-            # num_of_objs = int(f.readline())
+                num_of_objs = int(f.readline())
 
-                img_path = os.path.join(img_dir, f'{anno_id}jpg')
-            
+                img_path = os.path.join(img_dir, f'{anno_id}.jpg')
                 img = cv2.imread(img_path)
-
                 img_height, img_width, _ = img.shape
-            
                 del img
 
                 boxes = []
-                bnd_box = parseXmlFiles(anno_file)
-                print(bnd_box)
-                for bnd_id, box in enumerate(bnd_box):
+                for _ in range(num_of_objs):
+                    obj = f.readline().rstrip().split(' ')
+                    obj = [int(elm) for elm in obj]
+                    if 3 < obj[0]:
+                        continue
 
-                    categories_id = box[0]
-                    xmin = max(int(box[1]), 0) / img_width
-                    ymin = max(int(box[2]), 0) / img_height
-                    xmax = min(int(box[3]), img_width) / img_width
-                    ymax = min(int(box[4]), img_height) / img_height
-                    boxes.append([categories_id, xmin, ymin, xmax, ymax])
-                    print(boxes)
+                    xmin = max(obj[1], 0) / img_width
+                    ymin = max(obj[2], 0) / img_height
+                    xmax = min(obj[3], img_width) / img_width
+                    ymax = min(obj[4], img_height) / img_height
+
+                    boxes.append([class_id, xmin, ymin, xmax, ymax])
+
                 if not boxes:
                     continue
-                
+
             img_paths.append(img_path)
             annos.append(boxes)
-            print("annos: All coordinates after scaling the original image ：",annos)
-            print(img_paths)
         return img_paths, annos
 
     def aug_image(self, train_instance):
@@ -502,11 +494,11 @@ class BatchGenerator(Sequence):
             
 
             
-            img_paths, annos = get_dataset(ANNO_DIR, IMG_DIR)
+            img_paths, annos = BatchGenerator.get_dataset(ANNO_DIR, IMG_DIR)
 
             idxs = random.sample(range(len(annos)), 4)# from annos Take... Randomly from the list length 4 Number 
 
-            new_image, new_annos = update_image_and_anno(img_paths, annos, idxs, OUTPUT_SIZE, SCALE_RANGE, filter_scale=FILTER_TINY_SCALE)
+            new_image, new_annos = BatchGenerator.update_image_and_anno(img_paths, annos, idxs, OUTPUT_SIZE, SCALE_RANGE, filter_scale=FILTER_TINY_SCALE)
             # Update to get new graph and corresponding data anno
             cv2.imwrite('./img/wind_output.jpg', new_image)
             print("coucou")
