@@ -5,16 +5,17 @@ from time import time
 import xml.etree.ElementTree as et
 
 import cv2
+from cv2 import boundingRect
 import numpy as np
 from imgaug import augmenters as iaa
 from imgaug.augmentables import BoundingBox, BoundingBoxesOnImage
 from tensorflow.keras.utils import Sequence
-from tensorflow.keras.backend import sigmoid
 from tqdm import tqdm
 from perlin_noise import PerlinNoise
 
 from .utils import BoundBox, bbox_iou
 from bbaug.policies import policies
+from bbaug.augmentations import augmentations
 
 
 def parse_annotation_xml(ann_dir, img_dir, labels=[]):
@@ -133,20 +134,48 @@ def parse_annotation_csv(csv_file, labels=[], base_path=""):
     return all_imgs, seen_labels
 
 
-class CustomPolicy():
+class CustomPolicy(policies.PolicyContainer):
     """
     Custom augmentation policy.
     """
 
     def __init__(self):
+        name_to_augmentation = augmentations.NAME_TO_AUGMENTATION.copy()
+        name_to_augmentation.update({'PerlinShadows': self.shadows_augmentation})
+        super().__init__(None, name_to_augmentation=name_to_augmentation)
+
         # Create perlin noise mask
         noise = PerlinNoise(octaves=80, seed=np.random.randint(1e8))
         mask_w, mask_h = 1000, 1000
         print('Creating shadow mask...')
         self.shadow = np.array([[noise([i / mask_h, j / mask_w]) for j in range(mask_w)] for i in range(mask_h)])
         print('', end='\r')
+    
+    def select_random_policy(self):
+        return [
+                policies.POLICY_TUPLE('PerlinShadows', 0.3, 8),
+                policies.POLICY_TUPLE('Brightness', 0.2, 1),
+                policies.POLICY_TUPLE('Cutout', 0.2, 6),
+                policies.POLICY_TUPLE('Cutout_BBox', 0.2, 2),
+                policies.POLICY_TUPLE('Color', 0.2, 1),
+                policies.POLICY_TUPLE('Fliplr_BBox', 0.2, 3),
+                policies.POLICY_TUPLE('Rotate', 0.2, 3),
+                policies.POLICY_TUPLE('Solarize', 0.2, 1),
+                policies.POLICY_TUPLE('Translate_X', 0.2, 3),
+                policies.POLICY_TUPLE('Translate_X_BBox', 0.2, 3),
+                policies.POLICY_TUPLE('Translate_Y', 0.2, 3),
+                policies.POLICY_TUPLE('Translate_Y_BBox', 0.2, 3),                
+            ]
+    
+    def shadows_augmentation(self, magnitude: int):
+        """
+        Create callable augmentation.
+        """
+        def aug(image, bounding_boxes):
+            return self.PerlinShadows(image, amplitude=10 * magnitude, offset=0), bounding_boxes
+        return aug
 
-    def shadows_augmentation(self, image, amplitude=80, offset=0):
+    def PerlinShadows(self, image, amplitude=80, offset=0):
         """
         Add perlin noise brightness mask.
         """
@@ -194,32 +223,6 @@ class CustomPolicy():
         return array of float between 0.0 and 1.0 closer to limits.
         """
         return (-np.cos(np.pi * x) + 1) / 2
-
-
-    def modify_brightness(image: np.ndarray, value: int = 30):
-        """
-        Add brightness value to an image
-        """
-
-        # Convert RGB to HSV
-        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        h, s, v = cv2.split(hsv)
-
-        # Add brightness
-        if value > 0:
-            lim = 255 - value
-            v[v > lim] = 255
-            v[v <= lim] += value
-        # Remove brightness
-        else:
-            v[v < -value] = 0
-            v[v >= -value] += value
-
-        # Convert back HSV to RGB
-        final_hsv = cv2.merge((h, s, v))
-        image = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
-
-        return image
 
 
 class BatchGenerator(Sequence):
@@ -435,24 +438,13 @@ class BatchGenerator(Sequence):
                 bbs.append([xmin, ymin, xmax, ymax])
                 labels_bbs.append(self._config['LABELS'].index(obj['name']))
 
-            # cv2.imshow('Before augmentation', cv2.resize(image, (w // 3, h // 3)))
+            cv2.imshow('Before augmentation', cv2.resize(image, (w // 3, h // 3)))
 
-            # Use Google Brain Team augmentation
-            if isinstance(self._policy_chosen, policies.PolicyContainer):
-                random_policy = self._policy_chosen.select_random_policy()
-                image, bbs = self._policy_chosen.apply_augmentation(random_policy, image, bbs, labels_bbs)
-            
-            # Use custom augmentation
-            elif isinstance(self._policy_chosen, CustomPolicy):
-                image = self._policy_chosen.shadows_augmentation(image,
-                                                                amplitude=np.random.randint(50, 100),
-                                                                offset=np.random.randint(-10, 10))
-                # Add labels in first position of bounding boxes
-                for box, label in zip(bbs, labels_bbs):
-                    box.insert(0, label)
+            random_policy = self._policy_chosen.select_random_policy()
+            image, bbs = self._policy_chosen.apply_augmentation(random_policy, image, bbs, labels_bbs)
 
-            # cv2.imshow('After augmentation', cv2.resize(image, (w // 3, h // 3)))
-            # cv2.waitKey(0)
+            cv2.imshow('After augmentation', cv2.resize(image, (w // 3, h // 3)))
+            cv2.waitKey(0)
             
             # Recreate bounding boxes
             all_objs = []
