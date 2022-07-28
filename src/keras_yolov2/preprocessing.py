@@ -393,13 +393,12 @@ class BatchGenerator(Sequence):
         if jitter=='mosaic': #si on utilise l'augmentation de données mosaic
             
             OUTPUT_SIZE = (1024, 1024) # Height, Width
-            SCALE_RANGE = (0.5, 0.5)
+            SCALE_RANGE = (0.3 0.7)
             FILTER_TINY_SCALE = 1 / 50 # if height or width lower than this scale, drop it.
             #voc Data set in format ,anno_dir It's a label xml file ,img_dir It's corresponding to jpg picture 
             ANNO_DIR = 'data/inputs/input_all.csv'
             IMG_DIR ='data/inputs/raw_data/cleaned_labels/input_train_caped300_cleaned.csv'
-            # category_name = ['background', 'person']
-
+            
 
             def main():
                 img_paths, annos = get_dataset(ANNO_DIR, IMG_DIR)
@@ -414,10 +413,12 @@ class BatchGenerator(Sequence):
                     start_point = (int(anno[1] * OUTPUT_SIZE[1]), int(anno[2] * OUTPUT_SIZE[0]))# Top left corner 
                     end_point = (int(anno[3] * OUTPUT_SIZE[1]), int(anno[4] * OUTPUT_SIZE[0]))# Lower right corner 
                     cv2.rectangle(new_image, start_point, end_point, (0, 255, 0), 1, cv2.LINE_AA)# Once per cycle, a rectangle is formed in the composite drawing 
-                    cv2.imwrite('./img/wind_output_box.jpg', new_image)
-                    new_image = cv2.cvtColor(new_image, cv2.COLOR_BGR2RGB)
-                    new_image = Image.fromarray(new_image.astype(np.uint8))
-                    # new_image.show()
+                    
+                cv2.imwrite('data/imgs/img_mosaic/image.jpg', new_image)
+
+                new_image = cv2.cvtColor(new_image, cv2.COLOR_BGR2RGB)
+                new_image = Image.fromarray(new_image.astype(np.uint8))
+                new_image.show()
                     # cv2.imwrite('./img/wind_output111.jpg', new_image)
             def update_image_and_anno(all_img_list, all_annos, idxs, output_size, scale_range, filter_scale=0.):
                 output_img = np.zeros([output_size[0], output_size[1], 3], dtype=np.uint8)
@@ -425,12 +426,16 @@ class BatchGenerator(Sequence):
                 scale_y = scale_range[0] + random.random() * (scale_range[1] - scale_range[0])
                 divid_point_x = int(scale_x * output_size[1])
                 divid_point_y = int(scale_y * output_size[0])
+
                 new_anno = []
+
                 for i, idx in enumerate(idxs):
         
                     path = all_img_list[idx]
                     img_annos = all_annos[idx]
+
                     img = cv2.imread(path)
+                    
                     if i == 0: # top-left  
                         img = cv2.resize(img, (divid_point_x, divid_point_y))
                         output_img[:divid_point_y, :divid_point_x, :] = img
@@ -467,7 +472,13 @@ class BatchGenerator(Sequence):
                             xmax = scale_x + bbox[3] * (1 - scale_x)
                             ymax = scale_y + bbox[4] * (1 - scale_y)
                             new_anno.append([bbox[0], xmin, ymin, xmax, ymax])  
-                    return output_img, new_anno
+                    
+                if 0 < filter_scale:
+                    new_anno = [anno for anno in new_anno if
+                                filter_scale < (anno[3] - anno[1]) and filter_scale < (anno[4] - anno[2])]
+
+                return output_img, new_anno
+
 
             def get_dataset(anno_dir, img_dir):
                 # class_id = category_name.index('person')
