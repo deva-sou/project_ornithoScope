@@ -1,16 +1,19 @@
 import copy
+from multiprocessing.connection import wait
 import os
 import xml.etree.ElementTree as et
 
 import cv2
+from cv2 import resize
 import numpy as np
 from tensorflow.keras.utils import Sequence
 from tqdm import tqdm
 from perlin_noise import PerlinNoise
 
-from .utils import BoundBox, bbox_iou
+from .utils import BoundBox, bbox_iou, draw_boxes
 from bbaug.policies import policies
 from bbaug.augmentations import augmentations
+from imgaug.augmentables.bbs import BoundingBox, BoundingBoxesOnImage
 
 
 def parse_annotation_xml(ann_dir, img_dir, labels=[]):
@@ -129,38 +132,70 @@ def parse_annotation_csv(csv_file, labels=[], base_path=""):
     return all_imgs, seen_labels
 
 
+def resize_bbox(bbox, initial_size, final_size):
+    bbox['xmin'] *= final_size[0] / initial_size[0]
+    bbox['xmax'] *= final_size[0] / initial_size[0]
+    bbox['ymin'] *= final_size[1] / initial_size[1]
+    bbox['ymax'] *= final_size[1] / initial_size[1]
+    return bbox
+
+
 class CustomPolicy(policies.PolicyContainer):
     """
     Custom augmentation policy.
     """
 
-    def __init__(self):
+    def __init__(self, images, config):
+        self._config = config
+
+        # List all augmentations
         name_to_augmentation = augmentations.NAME_TO_AUGMENTATION.copy()
-        name_to_augmentation.update({'PerlinShadows': self.shadows_augmentation})
+        name_to_augmentation.update({
+                'PerlinShadows': self.shadows_augmentation,
+                'Mosaic': self.mosaic_augmentation,
+            })
         super().__init__(None, name_to_augmentation=name_to_augmentation)
+
+        # Extract all image paths and all annotations
+        self.all_path = []
+        self.all_bboxs = []
+        for image in images:
+            path = image['filename']
+            bboxs = image['object']
+
+            self.all_path.append(path)
+            self.all_bboxs.append(bboxs)
 
         # Create perlin noise mask
         noise = PerlinNoise(octaves=80, seed=np.random.randint(1e8))
-        mask_w, mask_h = 1000, 1000
-        print('Creating shadow mask...')
+        mask_w, mask_h = 100, 100
+        print('Creating shadow mask...', end='\r')
         self.shadow = np.array([[noise([i / mask_h, j / mask_w]) for j in range(mask_w)] for i in range(mask_h)])
-        print('', end='\r')
+        print('                       ', end='\r')
     
     def select_random_policy(self):
         return [
-                policies.POLICY_TUPLE('PerlinShadows', 0.3, 8),
-                policies.POLICY_TUPLE('Brightness', 0.2, 1),
-                policies.POLICY_TUPLE('Cutout', 0.2, 6),
-                policies.POLICY_TUPLE('Cutout_BBox', 0.2, 2),
-                policies.POLICY_TUPLE('Color', 0.2, 1),
-                policies.POLICY_TUPLE('Fliplr_BBox', 0.2, 3),
-                policies.POLICY_TUPLE('Rotate', 0.2, 3),
-                policies.POLICY_TUPLE('Solarize', 0.2, 1),
-                policies.POLICY_TUPLE('Translate_X', 0.2, 3),
-                policies.POLICY_TUPLE('Translate_X_BBox', 0.2, 3),
-                policies.POLICY_TUPLE('Translate_Y', 0.2, 3),
-                policies.POLICY_TUPLE('Translate_Y_BBox', 0.2, 3),                
+                policies.POLICY_TUPLE('Mosaic', 1.0, 3),
+                # policies.POLICY_TUPLE('PerlinShadows', 0.3, 8),
+                # policies.POLICY_TUPLE('Brightness', 0.2, 1),
+                # policies.POLICY_TUPLE('Cutout', 0.2, 6),
+                # policies.POLICY_TUPLE('Cutout_BBox', 1.0, 2),
+                # policies.POLICY_TUPLE('Color', 0.2, 1),
+                # policies.POLICY_TUPLE('Fliplr_BBox', 0.2, 3),
+                # policies.POLICY_TUPLE('Rotate', 0.2, 3),
+                # policies.POLICY_TUPLE('Solarize', 0.2, 1),
+                # policies.POLICY_TUPLE('Translate_X', 0.2, 3),
+                # policies.POLICY_TUPLE('Translate_X_BBox', 0.2, 3),
+                # policies.POLICY_TUPLE('Translate_Y', 0.2, 3),
+                # policies.POLICY_TUPLE('Translate_Y_BBox', 0.2, 3),                
             ]
+    
+
+    def mosaic_augmentation(self, magnitude: int):
+        def aug(image, bounding_boxes):
+            return self.Mosaic(idxs=np.random.randint(0, 100, 4), output_size=(1080, 1080, 3), scale_range=(0.3, 0.7), filter_scale=0.0)
+        return aug
+
     
     def shadows_augmentation(self, magnitude: int):
         """
@@ -169,6 +204,7 @@ class CustomPolicy(policies.PolicyContainer):
         def aug(image, bounding_boxes):
             return self.PerlinShadows(image, amplitude=10 * magnitude, offset=0), bounding_boxes
         return aug
+
 
     def PerlinShadows(self, image, amplitude=80, offset=0):
         """
@@ -220,6 +256,86 @@ class CustomPolicy(policies.PolicyContainer):
         return (-np.cos(np.pi * x) + 1) / 2
 
 
+    def Mosaic(self, idxs, output_size, scale_range, filter_scale=0.):
+        output_image = np.zeros(output_size, dtype=np.uint8)
+        scale_x = scale_range[0] + np.random.random() * (scale_range[1] - scale_range[0])
+        scale_y = scale_range[0] + np.random.random() * (scale_range[1] - scale_range[0])
+        divid_point_x = int(scale_x * output_size[1])
+        divid_point_y = int(scale_y * output_size[0])
+
+        new_bboxs = []
+        for i, idx in enumerate(idxs):
+            path = self.all_path[idx] 
+            bboxs = self.all_bboxs[idx]
+
+            img = cv2.imread(path)
+
+            if i == 0:  # top-left
+                img_c = img.copy()
+                h, w, _ = img_c.shape
+                for bbox in bboxs:
+                    cv2.rectangle(img_c, (int(bbox['xmin']), int(bbox['ymin'])), (int(bbox['xmax']), int(bbox['ymax'])), (0, 255, 0), 5)
+                cv2.imshow('top-left', cv2.resize(img_c, (w // 3, h // 3)))
+
+
+                initial_size = img.shape[-2::-1]
+                final_size = (divid_point_x, divid_point_y)
+                img = cv2.resize(img, final_size)
+                output_image[:divid_point_y, :divid_point_x, :] = img
+                for bbox in bboxs:
+                    bbox = resize_bbox(bbox, initial_size, final_size)
+                    xmin = bbox['xmin']
+                    ymin = bbox['ymin']
+                    xmax = bbox['xmax']
+                    ymax = bbox['ymax']
+                    new_bboxs.append(BoundingBox(xmin, ymin, xmax, ymax, self._config['LABELS'].index(bbox['name'])))
+
+            elif i == 1:  # top-right
+                initial_size = img.shape[-2::-1]
+                final_size = (output_size[1] - divid_point_x, divid_point_y)
+                img = cv2.resize(img, final_size)
+                output_image[:divid_point_y, divid_point_x:, :] = img
+                for bbox in bboxs:
+                    bbox = resize_bbox(bbox, initial_size, final_size)
+                    xmin = bbox['xmin'] + divid_point_x
+                    ymin = bbox['ymin']
+                    xmax = bbox['xmax'] + divid_point_x
+                    ymax = bbox['ymax']
+                    new_bboxs.append(BoundingBox(xmin, ymin, xmax, ymax, self._config['LABELS'].index(bbox['name'])))
+
+            elif i == 2:  # bottom-left
+                initial_size = img.shape[-2::-1]
+                final_size = (divid_point_x, output_size[0] - divid_point_y)
+                img = cv2.resize(img, final_size)
+                output_image[divid_point_y:, :divid_point_x, :] = img
+                for bbox in bboxs:
+                    bbox = resize_bbox(bbox, initial_size, final_size)
+                    xmin = bbox['xmin']
+                    ymin = bbox['ymin'] + divid_point_y
+                    xmax = bbox['xmax']
+                    ymax = bbox['ymax'] + divid_point_y
+                    new_bboxs.append(BoundingBox(xmin, ymin, xmax, ymax, self._config['LABELS'].index(bbox['name'])))
+
+            else:  # bottom-right
+                initial_size = img.shape[-2::-1]
+                final_size = (output_size[1] - divid_point_x, output_size[0] - divid_point_y)
+                img = cv2.resize(img, final_size)
+                output_image[divid_point_y:, divid_point_x:, :] = img
+                for bbox in bboxs:
+                    bbox = resize_bbox(bbox, initial_size, final_size)
+                    xmin = bbox['xmin'] + divid_point_x
+                    ymin = bbox['ymin'] + divid_point_y
+                    xmax = bbox['xmax'] + divid_point_x
+                    ymax = bbox['ymax'] + divid_point_y
+                    new_bboxs.append(BoundingBox(xmin, ymin, xmax, ymax, self._config['LABELS'].index(bbox['name'])))
+
+        # if 0 < filter_scale:
+        #     new_bboxs = [anno for anno in new_bboxs if
+        #                 filter_scale < (anno[3] - anno[1]) and filter_scale < (anno[4] - anno[2])]
+        
+        return output_image, BoundingBoxesOnImage(new_bboxs, output_size)
+
+
 class BatchGenerator(Sequence):
     def __init__(self, images, config, shuffle=True, jitter=True, norm=None, policy_container='none'):
 
@@ -253,9 +369,9 @@ class BatchGenerator(Sequence):
         policy_chosen = self._policy_container.lower()
         if policy_chosen in data_aug_policies:
             return data_aug_policies.get(policy_chosen)
-        
+       
         elif policy_chosen == 'custom':
-            return CustomPolicy()
+            return CustomPolicy(self._images, self._config)
 
         elif policy_chosen == 'none':
             self._jitter = False
@@ -315,9 +431,9 @@ class BatchGenerator(Sequence):
         anchors_populated_map = np.zeros((r_bound - l_bound, self._config['GRID_H'], self._config['GRID_W'],
                                           self._config['BOX']))
 
-        for instance_count, train_instance in enumerate(self._images[l_bound:r_bound]):
+        for instance_count in range(r_bound - l_bound):
             # Augment input image and bounding boxes' attributes
-            img, all_bbs = self.aug_image(train_instance)
+            img, all_bbs = self.aug_image(l_bound + instance_count)
 
             for bb in all_bbs:
                 # Check if it is a valid boudning box
@@ -403,7 +519,8 @@ class BatchGenerator(Sequence):
         if self._shuffle:
             np.random.shuffle(self._images)
 
-    def aug_image(self, train_instance):
+    def aug_image(self, idx):
+        train_instance = self._images[idx]
         image_name = train_instance['filename']
         if self._config['IMAGE_C'] == 1:
             image = cv2.imread(image_name, cv2.IMREAD_GRAYSCALE)
@@ -437,9 +554,14 @@ class BatchGenerator(Sequence):
 
             random_policy = self._policy_chosen.select_random_policy()
             image, bbs = self._policy_chosen.apply_augmentation(random_policy, image, bbs, labels_bbs)
+            
 
+            for bbox in bbs:
+                cv2.rectangle(image, (bbox[1], bbox[2]), (bbox[3], bbox[4]), (0, 255, 0), 5)
+            # draw_boxes(image, [BoundBox(bbox[1], bbox[2], bbox[3], bbox[4], c=1.0, classes=[0 if i != bbox[0] else 1 for i in range(len(self._config['LABELS']))]) for bbox in bbs], self._config['LABELS'])
+            
             cv2.imshow('After augmentation', cv2.resize(image, (w // 3, h // 3)))
-            cv2.waitKey(0)
+            cv2.waitKey(0) #attend indéfiniment grâce au 0 (1000 = une sec)
             
             # Recreate bounding boxes
             all_objs = []
@@ -470,4 +592,3 @@ class BatchGenerator(Sequence):
                 obj[attr] = max(min(obj[attr], self._config['IMAGE_H']), 0)
 
         return image, all_objs
-    
