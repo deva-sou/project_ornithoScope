@@ -1,14 +1,9 @@
 import copy
-from email import policy
 import os
-from time import time
 import xml.etree.ElementTree as et
 
 import cv2
-from cv2 import boundingRect
 import numpy as np
-from imgaug import augmenters as iaa
-from imgaug.augmentables import BoundingBox, BoundingBoxesOnImage
 from tensorflow.keras.utils import Sequence
 from tqdm import tqdm
 from perlin_noise import PerlinNoise
