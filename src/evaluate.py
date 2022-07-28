@@ -17,7 +17,7 @@ argparser = argparse.ArgumentParser(
 argparser.add_argument(
     '-c',
     '--conf',
-    default='config/config_to_train/Adam_OCS_batchsize8_1e-5à1e-2.json', #à changer selon les config
+    default='config/config_to_train/Adam_OCS_batchsize16_1e-5à1e-2.json', #à changer selon les config
     help='path to configuration file')
 
 argparser.add_argument(
@@ -30,7 +30,7 @@ argparser.add_argument(
 argparser.add_argument(
     '-w',
     '--weights',
-    default='data/saved_weights/new_weights/Adam_OCS_batchsize8_1e-5à1e-2_bestLoss.h5', #à changer selon les config
+    default='data/saved_weights/new_weights/Adam_OCS_batchsize16_1e-5à1e-2_mosaic_bestLoss.h5', #à changer selon les config
     help='path to pretrained weights')
 
 argparser.add_argument(

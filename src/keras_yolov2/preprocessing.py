@@ -393,7 +393,7 @@ class BatchGenerator(Sequence):
         if jitter=='mosaic': #si on utilise l'augmentation de données mosaic
             
             OUTPUT_SIZE = (1024, 1024) # Height, Width
-            SCALE_RANGE = (0.3 0.7)
+            SCALE_RANGE = (0.3, 0.7)
             FILTER_TINY_SCALE = 1 / 50 # if height or width lower than this scale, drop it.
             #voc Data set in format ,anno_dir It's a label xml file ,img_dir It's corresponding to jpg picture 
             ANNO_DIR = 'data/inputs/input_all.csv'
@@ -484,48 +484,48 @@ class BatchGenerator(Sequence):
                 # class_id = category_name.index('person')
                 img_paths = []
                 annos = []
+
                 # for anno_file in glob.glob(os.path.join(anno_dir, '*.txt')):
                 for anno_file in glob.glob(os.path.join(anno_dir, '*.xml')):
                     # anno_id = anno_file.split('/')[-1].split('.')[0]
                     anno_id = anno_file.split('/')[-1].split('x')[0]
                     
-                    # with open(anno_file, 'r') as f:
+                    with open(anno_file, 'r') as f:
                     # num_of_objs = int(f.readline())
    
-                    img_path = os.path.join(img_dir, f'{anno_id}jpg')
-                    print(img_path)
-                    img = cv2.imread(img_path)
+                        img_path = os.path.join(img_dir, f'{anno_id}jpg')
+                    
+                        img = cv2.imread(img_path)
    
-                    img_height, img_width, _ = img.shape
-                    print(img.shape)
-                    del img
-                    boxes = []
-                    bnd_box = parseXmlFiles(anno_file)
-                    print(bnd_box)
-                    for bnd_id, box in enumerate(bnd_box):
+                        img_height, img_width, _ = img.shape
+                    
+                        del img
+
+                        boxes = []
+                        bnd_box = parseXmlFiles(anno_file)
+                        print(bnd_box)
+                        for bnd_id, box in enumerate(bnd_box):
  
-                        categories_id = box[0]
-                        xmin = max(int(box[1]), 0) / img_width
-                        ymin = max(int(box[2]), 0) / img_height
-                        xmax = min(int(box[3]), img_width) / img_width
-                        ymax = min(int(box[4]), img_height) / img_height
-                        boxes.append([categories_id, xmin, ymin, xmax, ymax])
-                        print(boxes)
+                            categories_id = box[0]
+                            xmin = max(int(box[1]), 0) / img_width
+                            ymin = max(int(box[2]), 0) / img_height
+                            xmax = min(int(box[3]), img_width) / img_width
+                            ymax = min(int(box[4]), img_height) / img_height
+                            boxes.append([categories_id, xmin, ymin, xmax, ymax])
+                            print(boxes)
                         if not boxes:
                             continue
-                        img_paths.append(img_path)
-                        annos.append(boxes)
-                        print("annos: All coordinates after scaling the original image ：",annos)
-                        print(img_paths)
-                        return img_paths, annos
+                        
+                    img_paths.append(img_path)
+                    annos.append(boxes)
+                    print("annos: All coordinates after scaling the original image ：",annos)
+                    print(img_paths)
+                return img_paths, annos
 
+
+            if __name__ == '__main__':
+                main()
             
-
-
-
-
-
-
 
             # resize the image to standard size
         image = cv2.resize(image, (self._config['IMAGE_W'], self._config['IMAGE_H']))
