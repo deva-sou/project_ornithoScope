@@ -13,6 +13,14 @@ from tqdm import tqdm
 from .utils import BoundBox, bbox_iou
 from bbaug.policies import policies
 
+import random
+import cv2
+import os
+import glob
+import numpy as np
+from PIL import Image
+
+
 
 def parse_annotation_xml(ann_dir, img_dir, labels=[]):
     # This parser is utilized on VOC dataset
@@ -156,28 +164,44 @@ class BatchGenerator(Sequence):
         #print(self._jitter)
         if shuffle:
             np.random.shuffle(self._images)
+
+    
     
     def __len__(self):
         return int(np.ceil(float(len(self._images)) / self._config['BATCH_SIZE']))
 
-    def get_policy_container(self):
+
+    #On doit écrire un script qui fait soit notre politique d'augmentation de données soit celle de Deva mais pas les deux en même temps
+
+    #policy_chosen=policy_container=policy(dans le train_generator du frontend)=config['train']['augmentation'] (dans le train) 
+
+    def get_policy_container(self): 
         data_aug_policies = {
             'v0':policies.PolicyContainer(policies.policies_v0()),
             'v1':policies.PolicyContainer(policies.policies_v1()),
             'v2':policies.PolicyContainer(policies.policies_v2()),
-            'v3':policies.PolicyContainer(policies.policies_v3())}
+            'v3':policies.PolicyContainer(policies.policies_v3())
+            }
         policy_chosen = self._policy_container.lower()
         print('\npolicy_chosen: ',policy_chosen)
         if policy_chosen in data_aug_policies:
-            return data_aug_policies.get(policy_chosen)
+            self._jitter='True'
+            return data_aug_policies.get(policy_chosen) #.get permet d'obtenir une valeur d'un dictionnaire
+        elif policy_chosen=='mosaic':
+            self._jitter='mosaic'
+            return None
         elif policy_chosen == 'none':
-            self._jitter = False
+            self._jitter = 'False'
             return None
         else : 
             print("Wrong policy for data augmentation")
             print('Choose beetween:\n')
             print(list(data_aug_policies.keys()))
             exit(0)
+
+    
+
+
     
     def num_classes(self):
         return len(self._config['LABELS'])
@@ -333,7 +357,7 @@ class BatchGenerator(Sequence):
         w = image.shape[1]
         all_objs = copy.deepcopy(train_instance['object'])
         #print(jitter)
-        if jitter:
+        if jitter=='True': #si une policy aug est appliquée
             #print('jitter true')
             bbs = []
             labels_bbs = []
@@ -347,6 +371,9 @@ class BatchGenerator(Sequence):
                 labels_bbs.append(self._config['LABELS'].index(obj['name']))
             # REPLACE WITH AUGMENTATION FROM GOOGLE BRAIN TEAM !
             # select a random policy from the policy set
+
+            
+
             random_policy = self._policy_chosen.select_random_policy() 
             image, bbs = self._policy_chosen.apply_augmentation(random_policy, image, bbs, labels_bbs)
 
@@ -360,6 +387,134 @@ class BatchGenerator(Sequence):
                 obj['ymax'] = bb[4]
                 obj['name'] = self._config['LABELS'][bb[0]]
                 all_objs.append(obj)
+
+        
+        '''Encore à adapter: changer les img_path par peut-être image et aussi les bbox'''
+        if jitter=='mosaic': #si on utilise l'augmentation de données mosaic
+                    #from lxml import etree
+#from ipdb import set_trace
+            OUTPUT_SIZE = (1024, 1024) # Height, Width
+            SCALE_RANGE = (0.5, 0.5)
+            FILTER_TINY_SCALE = 1 / 50 # if height or width lower than this scale, drop it.
+#voc Data set in format ,anno_dir It's a label xml file ,img_dir It's corresponding to jpg picture 
+            ANNO_DIR = 'data/inputs/input_all.csv'
+            IMG_DIR ='data/inputs/raw_data/cleaned_labels/input_train_caped300_cleaned.csv'
+# category_name = ['background', 'person']
+
+
+            def main():
+                img_paths, annos = get_dataset(ANNO_DIR, IMG_DIR)
+    # set_trace()
+                idxs = random.sample(range(len(annos)), 4)# from annos Take... Randomly from the list length 4 Number 
+    # set_trace()
+                new_image, new_annos = update_image_and_anno(img_paths, annos, idxs, OUTPUT_SIZE, SCALE_RANGE, filter_scale=FILTER_TINY_SCALE)
+    # Update to get new graph and corresponding data anno
+                cv2.imwrite('./img/wind_output.jpg', new_image)
+    #annos yes 
+                for anno in new_annos:
+                    start_point = (int(anno[1] * OUTPUT_SIZE[1]), int(anno[2] * OUTPUT_SIZE[0]))# Top left corner 
+                    end_point = (int(anno[3] * OUTPUT_SIZE[1]), int(anno[4] * OUTPUT_SIZE[0]))# Lower right corner 
+                    cv2.rectangle(new_image, start_point, end_point, (0, 255, 0), 1, cv2.LINE_AA)# Once per cycle, a rectangle is formed in the composite drawing 
+                    cv2.imwrite('./img/wind_output_box.jpg', new_image)
+                    new_image = cv2.cvtColor(new_image, cv2.COLOR_BGR2RGB)
+                    new_image = Image.fromarray(new_image.astype(np.uint8))
+    # new_image.show()
+    # cv2.imwrite('./img/wind_output111.jpg', new_image)
+            def update_image_and_anno(all_img_list, all_annos, idxs, output_size, scale_range, filter_scale=0.):
+                output_img = np.zeros([output_size[0], output_size[1], 3], dtype=np.uint8)
+                scale_x = scale_range[0] + random.random() * (scale_range[1] - scale_range[0])
+                scale_y = scale_range[0] + random.random() * (scale_range[1] - scale_range[0])
+                divid_point_x = int(scale_x * output_size[1])
+                divid_point_y = int(scale_y * output_size[0])
+                new_anno = []
+                for i, idx in enumerate(idxs):
+        #set_trace()
+                    path = all_img_list[idx]
+                    img_annos = all_annos[idx]
+                    img = cv2.imread(path)
+                    if i == 0: # top-left  
+                        img = cv2.resize(img, (divid_point_x, divid_point_y))
+                        output_img[:divid_point_y, :divid_point_x, :] = img
+                        for bbox in img_annos:
+                            xmin = bbox[1] * scale_x
+                            ymin = bbox[2] * scale_y  
+                            xmax = bbox[3] * scale_x
+                            ymax = bbox[4] * scale_y
+                            new_anno.append([bbox[0], xmin, ymin, xmax, ymax])
+                    elif i == 1: # top-right
+                        img = cv2.resize(img, (output_size[1] - divid_point_x, divid_point_y))
+                        output_img[:divid_point_y, divid_point_x:output_size[1], :] = img
+                        for bbox in img_annos:
+                            xmin = scale_x + bbox[1] * (1 - scale_x)
+                            ymin = bbox[2] * scale_y
+                            xmax = scale_x + bbox[3] * (1 - scale_x)
+                            ymax = bbox[4] * scale_y
+                            new_anno.append([bbox[0], xmin, ymin, xmax, ymax])
+                    elif i == 2: # bottom-left
+                        img = cv2.resize(img, (divid_point_x, output_size[0] - divid_point_y))
+                        output_img[divid_point_y:output_size[0], :divid_point_x, :] = img
+                        for bbox in img_annos:
+                            xmin = bbox[1] * scale_x
+                            ymin = scale_y + bbox[2] * (1 - scale_y)
+                            xmax = bbox[3] * scale_x
+                            ymax = scale_y + bbox[4] * (1 - scale_y)
+                            new_anno.append([bbox[0], xmin, ymin, xmax, ymax])
+                    else: # bottom-right
+                        img = cv2.resize(img, (output_size[1] - divid_point_x, output_size[0] - divid_point_y))
+                        output_img[divid_point_y:output_size[0], divid_point_x:output_size[1], :] = img
+                        for bbox in img_annos:
+                            xmin = scale_x + bbox[1] * (1 - scale_x)
+                            ymin = scale_y + bbox[2] * (1 - scale_y)
+                            xmax = scale_x + bbox[3] * (1 - scale_x)
+                            ymax = scale_y + bbox[4] * (1 - scale_y)
+                            new_anno.append([bbox[0], xmin, ymin, xmax, ymax])  
+                    return output_img, new_anno
+
+            def get_dataset(anno_dir, img_dir):
+    # class_id = category_name.index('person')
+                img_paths = []
+                annos = []
+    # for anno_file in glob.glob(os.path.join(anno_dir, '*.txt')):
+                for anno_file in glob.glob(os.path.join(anno_dir, '*.xml')):
+    # anno_id = anno_file.split('/')[-1].split('.')[0]
+                    anno_id = anno_file.split('/')[-1].split('x')[0]
+    # set_trace()
+    # with open(anno_file, 'r') as f:
+    # num_of_objs = int(f.readline())
+    # set_trace()
+                    img_path = os.path.join(img_dir, f'{anno_id}jpg')
+                    print(img_path)
+                    img = cv2.imread(img_path)
+    # set_trace() 
+                    img_height, img_width, _ = img.shape
+                    print(img.shape)
+                    del img
+                    boxes = []
+                    bnd_box = parseXmlFiles(anno_file)
+                    print(bnd_box)
+                    for bnd_id, box in enumerate(bnd_box):
+    # set_trace()
+                        categories_id = box[0]
+                        xmin = max(int(box[1]), 0) / img_width
+                        ymin = max(int(box[2]), 0) / img_height
+                        xmax = min(int(box[3]), img_width) / img_width
+                        ymax = min(int(box[4]), img_height) / img_height
+                        boxes.append([categories_id, xmin, ymin, xmax, ymax])
+                        print(boxes)
+                        if not boxes:
+                            continue
+                        img_paths.append(img_path)
+                        annos.append(boxes)
+                        print("annos: All coordinates after scaling the original image ：",annos)
+                        print(img_paths)
+                        return img_paths, annos
+
+            
+
+
+
+
+
 
 
             # resize the image to standard size

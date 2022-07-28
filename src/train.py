@@ -17,7 +17,7 @@ argparser = argparse.ArgumentParser(
 argparser.add_argument(
     '-c',
     '--conf',
-    default='config/config_lab_mobilenetV1.json',
+    default='config/config_to_train/Adam_OCS_batch8_1e-5à1e-2.json',
     help='path to configuration file')
 
 
@@ -93,6 +93,8 @@ def _main_(args):
         print("Loading pre-trained weights in", config['train']['pretrained_weights'])
         yolo.load_weights(config['train']['pretrained_weights'])
 
+
+    #lr_finder_callback = LRFinder(start_lr=1e-7, end_lr=10, max_steps=100, smoothing=0.9)
     ###############################
     #   Start the training process 
     ###############################
@@ -113,9 +115,9 @@ def _main_(args):
                max_queue_size=config['train']['max_queue_size'],
                tb_logdir=config['train']['tensorboard_log_dir'],
                optimizer_config=config['train']['optimizer'],
+               custom_callbacks=[],
                iou_threshold=config['valid']['iou_threshold'],
                score_threshold=config['valid']['score_threshold'],
-               cosine_decay=config['train']['cosine_decay'],
                policy=config['train']['augmentation'],
                saved_pickles_path = config['data']['saved_pickles_path'])
 

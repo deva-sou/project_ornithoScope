@@ -5,18 +5,19 @@ import cv2
 import numpy as np
 import pickle
 import tensorflow as tf
+import matplotlib.pyplot as plt
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard, ReduceLROnPlateau
 from tensorflow.keras.layers import Reshape, Conv2D, Input
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam, SGD, RMSprop
 from tensorflow.keras.optimizers.schedules import CosineDecayRestarts, ExponentialDecay
 
-from .cosine_decay import WarmUpCosineDecayScheduler
 from .map_evaluation import MapEvaluation
 from .preprocessing import BatchGenerator
 from .utils import decode_netout, import_feature_extractor, import_dynamically
 from .yolo_loss import YoloLoss
 from .Onecycle import OneCycleScheduler
+
 
 class YOLO(object):
     def __init__(self, backend, input_size, labels, anchors, gray_mode=False, freeze=False):
@@ -80,7 +81,6 @@ class YOLO(object):
         self._coord_scale = None
         self._class_scale = None
         self._debug = None
-        self._warmup_batches = None
         self._interpreter = None
         self._tflite = False
 
@@ -102,18 +102,17 @@ class YOLO(object):
               no_object_scale,
               coord_scale,
               class_scale,
-              policy,
-              saved_pickles_path,
+              policy, #policy d'augmentation de données
               optimizer_config,
+              saved_pickles_path=None,
               saved_weights_name='best_weights.h5',
               workers=3,
               max_queue_size=8,
-              early_stop=True,
-              custom_callback=[],
+              early_stop=False,
               tb_logdir="./",
               iou_threshold=0.5,
               score_threshold=0.5,
-              cosine_decay=False
+              custom_callbacks=[]
               ):
 
         self._batch_size = batch_size
@@ -143,12 +142,12 @@ class YOLO(object):
         }
         
         #train_imgs: the list of img to train the model, donc format jpg
-        #BatchGenerator: défini dans preprocessing
+        #BatchGenerator: défini dans preprocessing, la variable policy_container contient ce qui a été rentrée dans le fichier config
 
         train_generator = BatchGenerator(train_imgs,
                                          generator_config,
                                          norm=self._feature_extractor.normalize,
-                                         policy_container = policy)
+                                         policy_container=policy)
         valid_generator = BatchGenerator(valid_imgs,
                                          generator_config,
                                          norm=self._feature_extractor.normalize,
@@ -158,7 +157,7 @@ class YOLO(object):
         # Compile the model
         ############################################
 
-        optimizer, lr_cb = YOLO.create_optimizer(optimizer_config, learning_rate)
+        optimizer, lr_callbacks = YOLO.create_optimizer(optimizer_config, learning_rate)
 
         loss_yolo = YoloLoss(self._anchors, (self._grid_w, self._grid_h), self._batch_size,
                              lambda_coord=coord_scale, lambda_noobj=no_object_scale, lambda_obj=object_scale,
@@ -172,11 +171,11 @@ class YOLO(object):
         # reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2,
         #                                                 patience = 7, min_lr = 0.00001, verbose = 1) #Reduce learning rate when a metric has stopped improving. This callback monitors a quantity and if no improvement is seen for a 'patience' number of epochs, the learning rate is reduced.
 
-        early_stop_cb = EarlyStopping(monitor='val_loss',
-                                      min_delta=0.001,
-                                      patience=15,
-                                      mode='min',
-                                      verbose=1)#Stop training when a monitored metric has stopped improving. Where an absolute change of less than min_delta, will count as no improvement. 
+        #early_stop_cb = EarlyStopping(monitor='val_loss',
+                                      #min_delta=0.001,
+                                      #patience=15,
+                                      #mode='min',
+                                      #verbose=1)#Stop training when a monitored metric has stopped improving. Where an absolute change of less than min_delta, will count as no improvement. 
 
         tensorboard_cb = TensorBoard(log_dir=tb_logdir,
                                      histogram_freq=0,
@@ -195,7 +194,7 @@ class YOLO(object):
                                     verbose=1,
                                     period=10)
         
-    
+        #en dessous on ne l'a plus utilisé pour les callbacks
         
         map_evaluator_cb = MapEvaluation(self, valid_generator,
                                          save_best=False,
@@ -204,27 +203,9 @@ class YOLO(object):
                                          iou_threshold=iou_threshold,
                                          score_threshold=score_threshold)
 
-        self._warmup_batches = train_times * len(train_generator) + len(valid_generator)
-        if cosine_decay:
-            total_steps = int(nb_epochs * len(train_generator) / batch_size)
-            warmup_steps = int(len(train_generator) / batch_size)
-            warm_up_lr = WarmUpCosineDecayScheduler(learning_rate_base=learning_rate,
-                                                    total_steps=total_steps,
-                                                    warmup_learning_rate=0.0,
-                                                    warmup_steps=warmup_steps,
-                                                    hold_base_rate_steps=0)
-
-        if not isinstance(custom_callback, list):
-            custom_callback = [custom_callback]
-        callbacks = [ckp_best_loss, ckp_saver, tensorboard_cb, map_evaluator_cb] + custom_callback + lr_cb
-        if early_stop:
-            callbacks.append(early_stop_cb)
-        if cosine_decay:
-            callbacks.append(warm_up_lr)
-
-        #commande ci-dessous rajoutée par axel, en l'enlevant on enlève le early-stopping
-
-        callbacks = ckp_best_loss
+        callbacks = [ckp_best_loss] + lr_callbacks + custom_callbacks # buggy callbacks : ckp_saver, tensorboard_cb, map_evaluator_cb
+        #if early_stop:
+            #callbacks.append(early_stop_cb)
 
         #############################
         # Start the training process
@@ -240,11 +221,16 @@ class YOLO(object):
                                   max_queue_size=max_queue_size).history
         
         # Save hisotry as pickle
-        pickle_file_path = f'{self._saved_pickles_path}/history/history_{root}_bestLoss{ext}.p'
-        pickel_dir_path ='/'.join(pickle_file_path.split('/')[:-1])
-        if not os.path.exists(pickel_dir_path):
-            os.makedirs(pickel_dir_path)
-        pickle.dump(history, open(pickle_file_path, "wb"))
+        if self._saved_pickles_path != None:
+            pickle_file_path = f'{self._saved_pickles_path}/history/history_{root}_bestLoss{ext}.p'
+            pickel_dir_path ='/'.join(pickle_file_path.split('/')[:-1])
+            if not os.path.exists(pickel_dir_path):
+                os.makedirs(pickel_dir_path)
+            pickle.dump(history, open(pickle_file_path, "wb"))
+        
+        if len(lr_callbacks) > 0:
+            lr_callbacks[0].plot()
+            plt.show()
 
     def predict(self, image, iou_threshold=0.5, score_threshold=0.5):
 
@@ -297,14 +283,14 @@ class YOLO(object):
 
     def create_optimizer(optimizer_config, default_lr):
         """
-        Instanciate an optimizer corresponding to `optimizer_config` dict.
+        Initialize an optimizer corresponding to `optimizer_config` dict.
         """
 
         if not 'name' in optimizer_config.keys():
             raise Exception('Optimizer name not indicated')
         
         # Create learning-rate scheduler
-        lr_scheduler, lr_cb = YOLO.create_lr_scheduler(optimizer_config['lr_scheduler'], default_lr)
+        lr_scheduler, lr_callbacks = YOLO.create_lr_scheduler(optimizer_config['lr_scheduler'], default_lr)
 
         if optimizer_config['name'] == 'Adam':
             # Parse Adam arguments
@@ -313,26 +299,26 @@ class YOLO(object):
             epsilon = float(optimizer_config.get('epsilon', 1e-08))
             decay = float(optimizer_config.get('decay', 0.0))
 
-            # Instanciate Adam
+            # Initialize Adam
             return Adam(
                     learning_rate=lr_scheduler,
                     beta_1=beta_1,
                     beta_2=beta_2,
                     epsilon=epsilon,
                     decay=decay
-                ), lr_cb
+                ), lr_callbacks
         
         if optimizer_config['name'] == 'SGD':
             # Parse SGD arguments
-            momentum = float(optimizer_config.get('momentum', 0.9))
+            momentum = float(optimizer_config.get('momentum', 0.0))
             nesterov = bool(optimizer_config.get('nesterov', False))
 
-            # Instanciate SGD
+            # Initialize SGD
             return SGD(
                     learning_rate=lr_scheduler,
                     momentum=momentum,
                     nesterov=nesterov
-                ), lr_cb
+                ), lr_callbacks
 
         if optimizer_config['name'] == 'RMSprop':
             # Parse RMSprop arguments
@@ -341,21 +327,21 @@ class YOLO(object):
             epsilon = float(optimizer_config.get('epsilon', 1e-07))
             centered = optimizer_config.get('centered', False)
 
-            # Instanciate RMSprop
+            # Initialize RMSprop
             return RMSprop(
                     learning_rate=lr_scheduler,
                     rho=rho,
                     momentum=momentum,
                     epsilon=epsilon,
                     centered=centered
-                ), lr_cb
+                ), lr_callbacks
         
         # Incorrect optimizer name
         raise Exception('Optimizer name \'%s\' is not valid, should be Adam, SGD or RMSprop' % optimizer_config['name'])
 
     def create_lr_scheduler(lr_scheduler_config, default_lr):
         """
-        Intanciate learing-rate scheduler corresponding to `lr_scheduler_config` dict.
+        Initialize learing-rate scheduler corresponding to `lr_scheduler_config` dict.
         """
         
         # Empty scheduler and None scheduler
@@ -368,12 +354,12 @@ class YOLO(object):
         if lr_scheduler_config['name'] in ('CosineDecayRestarts', 'CDR'):
             # Parse CosineDecayRestarts arguments
             initial_learning_rate = float(lr_scheduler_config.get('initial_learning_rate', 1e-4))
-            first_decay_steps = int(lr_scheduler_config.get('first_decay_steps', 1000))#on peut tester à 2000 et 5000
-            t_mul = float(lr_scheduler_config.get('t_mul', 2.0))#à tester à 1
+            first_decay_steps = int(lr_scheduler_config.get('first_decay_steps', 1000))
+            t_mul = float(lr_scheduler_config.get('t_mul', 2.0))
             m_mul = float(lr_scheduler_config.get('m_mul', 1.0))
             alpha = float(lr_scheduler_config.get('alpha', 0.0))
 
-            # Instanciate CosineDecayRestarts
+            # Initialize CosineDecayRestarts
             return CosineDecayRestarts(
                     initial_learning_rate=initial_learning_rate,
                     first_decay_steps=first_decay_steps,
@@ -381,20 +367,7 @@ class YOLO(object):
                     m_mul=m_mul,
                     alpha=alpha
                 ), []
-
         
-        if lr_scheduler_config['name'] in ('OneCycleScheduler', 'OCS'):
-            # Parse OneCycleScheduler arguments
-            lr_max = float(lr_scheduler_config.get('lr_max', 1e-3))
-            steps = int(lr_scheduler_config.get('steps', 1000))
-            mom_min = float(lr_scheduler_config.get('mom_min', 0.85))
-            mom_max = float(lr_scheduler_config.get('mom_max', 0.95))
-            phase_1_pct = float(lr_scheduler_config.get('phase_1_pct', 0.3))
-            div_factor = float(lr_scheduler_config.get('div_factor', 25.0))
-
-            # Initialize OneCycleScheduler
-            return default_lr, [OneCycleScheduler(lr_max, steps, mom_min, mom_max, phase_1_pct, div_factor)]
-
         if lr_scheduler_config['name'] in ('ExponentialDecay', 'ED'):
             # Parse ExponentialDecay arguments
             initial_learning_rate = float(lr_scheduler_config.get('initial_learning_rate', 1e-4))
@@ -402,7 +375,7 @@ class YOLO(object):
             decay_rate = float(lr_scheduler_config.get('decay_rate', 0.96))
             staircase = bool(lr_scheduler_config.get('staircase', False))
 
-            # Intanciate ExponentialDecay
+            # Initialize ExponentialDecay
             return ExponentialDecay(
                     initial_learning_rate=initial_learning_rate,
                     decay_steps=decay_steps,
@@ -410,7 +383,19 @@ class YOLO(object):
                     staircase=staircase
                 ), []
 
-        raise Exception('Learning-rate scheduler name \'%s\' is not valid, should be None, CosineDecayRestarts or ExponentialDecay' % lr_scheduler_config['name'])       
+        if lr_scheduler_config['name'] in ('OneCycleScheduler', 'OCS'):
+            # Parse OneCycleScheduler arguments
+            lr_max = float(lr_scheduler_config.get('lr_max', 1e-3))
+            steps = int(lr_scheduler_config.get('steps', 3600))
+            mom_min = float(lr_scheduler_config.get('mom_min', 0.85))
+            mom_max = float(lr_scheduler_config.get('mom_max', 0.95))
+            phase_1_pct = float(lr_scheduler_config.get('phase_1_pct', 0.3))
+            div_factor = float(lr_scheduler_config.get('div_factor', 100))
+
+            # Initialize OneCycleScheduler
+            return default_lr, [OneCycleScheduler(lr_max, steps, mom_min, mom_max, phase_1_pct, div_factor)]
+
+        raise Exception('Learning-rate scheduler name \'%s\' is not valid, should be None, CosineDecayRestarts, ExponentialDecay or OneCycleScheduler' % lr_scheduler_config['name'])       
 
 
     @property
