@@ -1,24 +1,27 @@
 import copy
 from email import policy
 import os
+from time import time
 import xml.etree.ElementTree as et
 
 import cv2
+from cv2 import boundingRect
 import numpy as np
 from imgaug import augmenters as iaa
 from imgaug.augmentables import BoundingBox, BoundingBoxesOnImage
 from tensorflow.keras.utils import Sequence
 from tqdm import tqdm
+from perlin_noise import PerlinNoise
 
 from .utils import BoundBox, bbox_iou
 from bbaug.policies import policies
+from bbaug.augmentations import augmentations
 
 
 def parse_annotation_xml(ann_dir, img_dir, labels=[]):
-    # This parser is utilized on VOC dataset
+    # This parser is used on VOC dataset
     all_imgs = []
     seen_labels = {}
-    print(ann_dir)
     ann_files = os.listdir(ann_dir)
     for ann in tqdm(sorted(ann_files)):
         img = {'object': []}
@@ -65,8 +68,6 @@ def parse_annotation_xml(ann_dir, img_dir, labels=[]):
                                 else:
                                     img['object'] += [obj]
                                 
-
-        #if len(img['object']) > 0:
         all_imgs += [img]
 
     return all_imgs, seen_labels
@@ -76,7 +77,6 @@ def parse_annotation_csv(csv_file, labels=[], base_path=""):
     # This is a generic parser that uses CSV files
     # File_path,xmin,ymin,xmax,ymax,class
 
-    #print("parsing {} csv file can took a while, wait please.".format(csv_file))
     all_imgs = []
     seen_labels = {}
 
@@ -88,12 +88,8 @@ def parse_annotation_csv(csv_file, labels=[], base_path=""):
             if line == "":
                 continue
             try:
-                fname, xmin, ymin, xmax, ymax, obj_name, width, height = line.strip().split(",") # ajouter ici height and width
-                #print('fname',fname,'obj name', obj_name)
+                fname, xmin, ymin, xmax, ymax, obj_name, width, height = line.strip().split(",")
                 fname = os.path.join(base_path, fname)
-
-                #image = cv2.imread(fname) # supprimer ça pour éviter la lecture de l'image
-                #height, width, _ = image.shape # ça aussi
 
                 img = dict()
                 img['object'] = []
@@ -101,7 +97,8 @@ def parse_annotation_csv(csv_file, labels=[], base_path=""):
                 img['width'] = width
                 img['height'] = height
 
-                if obj_name == "":  # if the object has no name, this means that this image is a background image
+                # If the object has no name, this means that this image is a background image
+                if obj_name == "":
                     all_imgs_indices[fname] = count_indice
                     all_imgs.append(img)
                     count_indice += 1
@@ -137,8 +134,99 @@ def parse_annotation_csv(csv_file, labels=[], base_path=""):
     return all_imgs, seen_labels
 
 
+class CustomPolicy(policies.PolicyContainer):
+    """
+    Custom augmentation policy.
+    """
+
+    def __init__(self):
+        name_to_augmentation = augmentations.NAME_TO_AUGMENTATION.copy()
+        name_to_augmentation.update({'PerlinShadows': self.shadows_augmentation})
+        super().__init__(None, name_to_augmentation=name_to_augmentation)
+
+        # Create perlin noise mask
+        noise = PerlinNoise(octaves=80, seed=np.random.randint(1e8))
+        mask_w, mask_h = 1000, 1000
+        print('Creating shadow mask...')
+        self.shadow = np.array([[noise([i / mask_h, j / mask_w]) for j in range(mask_w)] for i in range(mask_h)])
+        print('', end='\r')
+    
+    def select_random_policy(self):
+        return [
+                policies.POLICY_TUPLE('PerlinShadows', 0.3, 8),
+                policies.POLICY_TUPLE('Brightness', 0.2, 1),
+                policies.POLICY_TUPLE('Cutout', 0.2, 6),
+                policies.POLICY_TUPLE('Cutout_BBox', 0.2, 2),
+                policies.POLICY_TUPLE('Color', 0.2, 1),
+                policies.POLICY_TUPLE('Fliplr_BBox', 0.2, 3),
+                policies.POLICY_TUPLE('Rotate', 0.2, 3),
+                policies.POLICY_TUPLE('Solarize', 0.2, 1),
+                policies.POLICY_TUPLE('Translate_X', 0.2, 3),
+                policies.POLICY_TUPLE('Translate_X_BBox', 0.2, 3),
+                policies.POLICY_TUPLE('Translate_Y', 0.2, 3),
+                policies.POLICY_TUPLE('Translate_Y_BBox', 0.2, 3),                
+            ]
+    
+    def shadows_augmentation(self, magnitude: int):
+        """
+        Create callable augmentation.
+        """
+        def aug(image, bounding_boxes):
+            return self.PerlinShadows(image, amplitude=10 * magnitude, offset=0), bounding_boxes
+        return aug
+
+    def PerlinShadows(self, image, amplitude=80, offset=0):
+        """
+        Add perlin noise brightness mask.
+        """
+        h, w = image.shape[:2]
+
+        # Select perlin noise mask area
+        mask_w, mask_h = w // 20, h // 20
+        full_mask_w, full_mask_h = self.shadow.shape
+        x_pos, y_pos = np.random.randint(full_mask_w - mask_w), np.random.randint(full_mask_h - mask_h)
+        shadow = self.shadow[x_pos:x_pos + mask_w, y_pos:y_pos + mask_h]
+
+        # Set mask values between 0 and 255
+        shadow = shadow - np.min(shadow, (0, 1))
+        shadow = shadow / np.max(shadow, (0, 1))
+        shadow = CustomPolicy.cosine_contraste_augmentation(shadow) * 255.0
+        
+        # Resize mask to image size
+        shadow = shadow.astype('uint8')
+        shadow = cv2.resize(shadow, dsize=(w, h), interpolation=cv2.INTER_CUBIC)
+        shadow = shadow.astype('float') / 127.0 - 1.0
+
+        # Convert RGB to HSV
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        h, s, v = cv2.split(hsv)
+        v = v.astype('float')
+
+        # Recast mask values
+        shadow = amplitude * shadow + offset
+
+        # Apply shadow mask on brightness
+        v += shadow
+        v[v > 255.0] = 255.0
+        v[v < 0.0] = 0.0
+
+        # Convert back HSV to RGB
+        v = v.astype('uint8')
+        final_hsv = cv2.merge((h, s, v))
+        image = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+
+        return image
+
+    def cosine_contraste_augmentation(x: np.ndarray):
+        """
+        x, array of float between 0.0 and 1.0
+        return array of float between 0.0 and 1.0 closer to limits.
+        """
+        return (-np.cos(np.pi * x) + 1) / 2
+
+
 class BatchGenerator(Sequence):
-    def __init__(self, images, config, shuffle=True, jitter=True, norm=None, callback=None, policy_container='none'):
+    def __init__(self, images, config, shuffle=True, jitter=True, norm=None, policy_container='none'):
 
         self._images = images
         self._config = config
@@ -146,15 +234,13 @@ class BatchGenerator(Sequence):
         self._shuffle = shuffle
         self._jitter = jitter
         self._norm = norm
-        self._callback = callback
         self._policy_container = policy_container
 
         self._anchors = [BoundBox(0, 0, config['ANCHORS'][2 * i], config['ANCHORS'][2 * i + 1])
                          for i in range(int(len(config['ANCHORS']) // 2))]
 
-        # self.policy_container = policies.PolicyContainer(policies.policies_v3())
         self._policy_chosen = self.get_policy_container()
-        #print(self._jitter)
+        
         if shuffle:
             np.random.shuffle(self._images)
     
@@ -163,22 +249,28 @@ class BatchGenerator(Sequence):
 
     def get_policy_container(self):
         data_aug_policies = {
-            'v0':policies.PolicyContainer(policies.policies_v0()),
-            'v1':policies.PolicyContainer(policies.policies_v1()),
-            'v2':policies.PolicyContainer(policies.policies_v2()),
-            'v3':policies.PolicyContainer(policies.policies_v3())}
+            'v0' : policies.PolicyContainer(policies.policies_v0()),
+            'v1' : policies.PolicyContainer(policies.policies_v1()),
+            'v2' : policies.PolicyContainer(policies.policies_v2()),
+            'v3' : policies.PolicyContainer(policies.policies_v3())
+        }
+
         policy_chosen = self._policy_container.lower()
-        print('\npolicy_chosen: ',policy_chosen)
         if policy_chosen in data_aug_policies:
             return data_aug_policies.get(policy_chosen)
+        
+        elif policy_chosen == 'custom':
+            return CustomPolicy()
+
         elif policy_chosen == 'none':
             self._jitter = False
             return None
-        else : 
+
+        else: 
             print("Wrong policy for data augmentation")
             print('Choose beetween:\n')
             print(list(data_aug_policies.keys()))
-            exit(0)
+            exit(1)
     
     def num_classes(self):
         return len(self._config['LABELS'])
@@ -209,88 +301,88 @@ class BatchGenerator(Sequence):
         return image, '/'.join(self._images[i]['filename'].split('/')[-2:])
 
     def __getitem__(self, idx):
+        # Set lower an upper id for this batch
         l_bound = idx * self._config['BATCH_SIZE']
         r_bound = (idx + 1) * self._config['BATCH_SIZE']
 
+        # Fix upper bound grate than number of image
         if r_bound > len(self._images):
             r_bound = len(self._images)
             l_bound = r_bound - self._config['BATCH_SIZE']
 
-        instance_count = 0
+        # Initialize batch's input and output
         x_batch = np.zeros((r_bound - l_bound, self._config['IMAGE_H'], self._config['IMAGE_W'],
-                            self._config['IMAGE_C']))  # input images
-
+                            self._config['IMAGE_C']))
         y_batch = np.zeros((r_bound - l_bound, self._config['GRID_H'], self._config['GRID_W'], self._config['BOX'],
-                            4 + 1 + len(self._config['LABELS'])))  # desired network output
+                            4 + 1 + len(self._config['LABELS'])))
+
 
         anchors_populated_map = np.zeros((r_bound - l_bound, self._config['GRID_H'], self._config['GRID_W'],
                                           self._config['BOX']))
 
+        for instance_count, train_instance in enumerate(self._images[l_bound:r_bound]):
+            # Augment input image and bounding boxes' attributes
+            img, all_bbs = self.aug_image(train_instance)
 
-        for train_instance in self._images[l_bound:r_bound]:
-            # augment input image and fix object's position and size
-            img, all_objs = self.aug_image(train_instance)
+            for bb in all_bbs:
+                # Check if it is a valid boudning box
+                if bb['xmax'] <= bb['xmin'] or bb['ymax'] <= bb['ymin'] or not bb['name'] in self._config['LABELS']:
+                    continue
 
-            # if len(all_objs) == 0:
-            #    print("eeee")
+                
+                scale_w = float(self._config['IMAGE_W']) / self._config['GRID_W']
+                scale_h = float(self._config['IMAGE_H']) / self._config['GRID_H']
 
-            for obj in all_objs:
-                # check if it is a valid annotion
-                if obj['xmax'] > obj['xmin'] and obj['ymax'] > obj['ymin'] and obj['name'] in self._config['LABELS']:
-                    scale_w = float(self._config['IMAGE_W']) / self._config['GRID_W']
-                    scale_h = float(self._config['IMAGE_H']) / self._config['GRID_H']
-                    # get which grid cell it is from
-                    obj_center_x = (obj['xmin'] + obj['xmax']) / 2
-                    obj_center_x = obj_center_x / scale_w
-                    obj_center_y = (obj['ymin'] + obj['ymax']) / 2
-                    obj_center_y = obj_center_y / scale_h
+                # get which grid cell it is from
+                obj_center_x = (bb['xmin'] + bb['xmax']) / 2
+                obj_center_x = obj_center_x / scale_w
+                obj_center_y = (bb['ymin'] + bb['ymax']) / 2
+                obj_center_y = obj_center_y / scale_h
 
-                    obj_grid_x = int(np.floor(obj_center_x))
-                    obj_grid_y = int(np.floor(obj_center_y))
+                obj_grid_x = int(np.floor(obj_center_x))
+                obj_grid_y = int(np.floor(obj_center_y))
 
-                    if obj_grid_x < self._config['GRID_W'] and obj_grid_y < self._config['GRID_H']:
-                        obj_indx = self._config['LABELS'].index(obj['name'])
+                if obj_grid_x < self._config['GRID_W'] and obj_grid_y < self._config['GRID_H']:
+                    obj_indx = self._config['LABELS'].index(bb['name'])
 
-                        obj_w = (obj['xmax'] - obj['xmin']) / scale_w
-                        obj_h = (obj['ymax'] - obj['ymin']) / scale_h
+                    obj_w = (bb['xmax'] - bb['xmin']) / scale_w
+                    obj_h = (bb['ymax'] - bb['ymin']) / scale_h
 
-                        box = [obj_center_x, obj_center_y, obj_w, obj_h]
+                    box = [obj_center_x, obj_center_y, obj_w, obj_h]
 
-                        # find the anchor that best predicts this box
-                        # TODO: check f this part below is working correctly
-                        best_anchor_idx = -1
-                        max_iou = -1
+                    # find the anchor that best predicts this box
+                    # TODO: check f this part below is working correctly
+                    best_anchor_idx = -1
+                    max_iou = -1
 
-                        shifted_box = BoundBox(0, 0, obj_w, obj_h)
+                    shifted_box = BoundBox(0, 0, obj_w, obj_h)
 
-                        for i in range(len(self._anchors)):
-                            anchor = self._anchors[i]
-                            iou = bbox_iou(shifted_box, anchor)
+                    for i in range(len(self._anchors)):
+                        anchor = self._anchors[i]
+                        iou = bbox_iou(shifted_box, anchor)
 
-                            if max_iou < iou:
-                                best_anchor_idx = i
-                                max_iou = iou
+                        if max_iou < iou:
+                            best_anchor_idx = i
+                            max_iou = iou
 
-                        # assign ground truth x, y, w, h, confidence and class probs to y_batch
-                        self._change_obj_position(y_batch, anchors_populated_map,
-                                                  [instance_count, obj_grid_y, obj_grid_x, best_anchor_idx, obj_indx],
-                                                  box, max_iou)
+                    # assign ground truth x, y, w, h, confidence and class probs to y_batch
+                    self._change_obj_position(y_batch, anchors_populated_map,
+                                                [instance_count, obj_grid_y, obj_grid_x, best_anchor_idx, obj_indx],
+                                                box, max_iou)
 
             # assign input image to x_batch
             if self._norm is not None:
                 x_batch[instance_count] = self._norm(img)
             else:
                 # plot image and bounding boxes for sanity check
-                for obj in all_objs:
-                    if obj['xmax'] > obj['xmin'] and obj['ymax'] > obj['ymin']:
-                        cv2.rectangle(img[..., ::-1], (obj['xmin'], obj['ymin']), (obj['xmax'], obj['ymax']),
+                for bb in all_bbs:
+                    if bb['xmax'] > bb['xmin'] and bb['ymax'] > bb['ymin']:
+                        cv2.rectangle(img[..., ::-1], (bb['xmin'], bb['ymin']), (bb['xmax'], bb['ymax']),
                                       (255, 0, 0), 3)
-                        cv2.putText(img[..., ::-1], obj['name'], (obj['xmin'] + 2, obj['ymin'] + 12), 0,
+                        cv2.putText(img[..., ::-1], bb['name'], (bb['xmin'] + 2, bb['ymin'] + 12), 0,
                                     1.2e-3 * img.shape[0], (0, 255, 0), 2)
 
                 x_batch[instance_count] = img
-            # increase instance counter in current batch
-            instance_count += 1
 
         return x_batch, y_batch
 
@@ -317,8 +409,6 @@ class BatchGenerator(Sequence):
             np.random.shuffle(self._images)
 
     def aug_image(self, train_instance):
-        jitter = self._jitter
-        #print('self jitter', jitter)
         image_name = train_instance['filename']
         if self._config['IMAGE_C'] == 1:
             image = cv2.imread(image_name, cv2.IMREAD_GRAYSCALE)
@@ -328,32 +418,35 @@ class BatchGenerator(Sequence):
             raise ValueError("Invalid number of image channels.")
 
         if image is None:
-            print('Cannot find ', image_name)
-        if self._callback is not None:
-            image, train_instance = self._callback(image, train_instance)
+            raise Exception('Cannot find : ' + image_name)
 
-        h = image.shape[0]
-        w = image.shape[1]
+        h, w = image.shape[:2]
         all_objs = copy.deepcopy(train_instance['object'])
-        #print(jitter)
-        if jitter:
-            #print('jitter true')
+
+        # Apply augmentation
+        if self._jitter:
             bbs = []
             labels_bbs = []
-            for i, obj in enumerate(all_objs):
+
+            # Convert bouding boxes for the PolicyConatiner
+            for obj in all_objs:
                 xmin = obj['xmin']
                 ymin = obj['ymin']
                 xmax = obj['xmax']
                 ymax = obj['ymax']
-                # use label field to later match it with final boxes
+
                 bbs.append([xmin, ymin, xmax, ymax])
                 labels_bbs.append(self._config['LABELS'].index(obj['name']))
-            # REPLACE WITH AUGMENTATION FROM GOOGLE BRAIN TEAM !
-            # select a random policy from the policy set
-            random_policy = self._policy_chosen.select_random_policy() 
+
+            cv2.imshow('Before augmentation', cv2.resize(image, (w // 3, h // 3)))
+
+            random_policy = self._policy_chosen.select_random_policy()
             image, bbs = self._policy_chosen.apply_augmentation(random_policy, image, bbs, labels_bbs)
 
-
+            cv2.imshow('After augmentation', cv2.resize(image, (w // 3, h // 3)))
+            cv2.waitKey(0)
+            
+            # Recreate bounding boxes
             all_objs = []
             for bb in bbs:
                 obj = {}
@@ -365,13 +458,13 @@ class BatchGenerator(Sequence):
                 all_objs.append(obj)
 
 
-            # resize the image to standard size
+        # Resize the image to standard size
         image = cv2.resize(image, (self._config['IMAGE_W'], self._config['IMAGE_H']))
         if self._config['IMAGE_C'] == 1:
             image = image[..., np.newaxis]
         image = image[..., ::-1]  # make it RGB (it is important for normalization of some backends)
 
-        # fix object's position and size
+        # Fix object's position and size
         for obj in all_objs:
             for attr in ['xmin', 'xmax']:
                 obj[attr] = int(obj[attr] * float(self._config['IMAGE_W']) / w)
@@ -382,3 +475,4 @@ class BatchGenerator(Sequence):
                 obj[attr] = max(min(obj[attr], self._config['IMAGE_H']), 0)
 
         return image, all_objs
+    

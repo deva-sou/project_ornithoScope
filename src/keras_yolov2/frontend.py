@@ -5,16 +5,19 @@ import cv2
 import numpy as np
 import pickle
 import tensorflow as tf
+import matplotlib.pyplot as plt
+from keras_yolov2.anti_nan import AntiNaN
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard, ReduceLROnPlateau
 from tensorflow.keras.layers import Reshape, Conv2D, Input
 from tensorflow.keras.models import Model
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers import Adam, SGD, RMSprop
+from tensorflow.keras.optimizers.schedules import CosineDecayRestarts, ExponentialDecay
 
-from .cosine_decay import WarmUpCosineDecayScheduler
 from .map_evaluation import MapEvaluation
 from .preprocessing import BatchGenerator
 from .utils import decode_netout, import_feature_extractor, import_dynamically
 from .yolo_loss import YoloLoss
+from .one_cycle_scheduler import OneCycleScheduler
 
 
 class YOLO(object):
@@ -79,7 +82,6 @@ class YOLO(object):
         self._coord_scale = None
         self._class_scale = None
         self._debug = None
-        self._warmup_batches = None
         self._interpreter = None
         self._tflite = False
 
@@ -94,27 +96,24 @@ class YOLO(object):
     def train(self, train_imgs,  # the list of images to train the model
               valid_imgs,  # the list of images used to validate the model
               train_times,  # the number of time to repeat the training set, often used for small datasets
-              valid_times,  # the number of times to repeat the validation set, often used for small datasets
               nb_epochs,  # number of epoches
               learning_rate,  # the learning rate
               batch_size,  # the size of the batch
-              warmup_epochs,  # number of initial batches to let the model familiarize with the new dataset
               object_scale,
               no_object_scale,
               coord_scale,
               class_scale,
               policy,
-              saved_pickles_path,
+              optimizer_config,
+              saved_pickles_path=None,
               saved_weights_name='best_weights.h5',
               workers=3,
               max_queue_size=8,
               early_stop=True,
-              custom_callback=[],
               tb_logdir="./",
-              train_generator_callback=None,
               iou_threshold=0.5,
               score_threshold=0.5,
-              cosine_decay=False
+              custom_callbacks=[]
               ):
 
         self._batch_size = batch_size
@@ -142,23 +141,14 @@ class YOLO(object):
             'ANCHORS': self._anchors,
             'BATCH_SIZE': self._batch_size,
         }
-
-        if train_generator_callback is not None:
-            basepath = os.path.dirname(train_generator_callback)
-            sys.path.append(basepath)
-            custom_callback_name = os.path.basename(train_generator_callback)
-            custom_generator_callback = import_dynamically(custom_callback_name)
-        else:
-            custom_generator_callback = None
-            
+        
         #train_imgs: the list of img to train the model, donc format jpg
         #BatchGenerator: défini dans preprocessing
 
         train_generator = BatchGenerator(train_imgs,
                                          generator_config,
                                          norm=self._feature_extractor.normalize,
-                                         callback=custom_generator_callback,
-                                         policy_container = policy)
+                                         policy_container=policy)
         valid_generator = BatchGenerator(valid_imgs,
                                          generator_config,
                                          norm=self._feature_extractor.normalize,
@@ -168,16 +158,7 @@ class YOLO(object):
         # Compile the model
         ############################################
 
-        # Restartable cosine decay
-        lr_decayed_fn = tf.keras.optimizers.schedules.CosineDecayRestarts(
-            initial_learning_rate=learning_rate,
-            first_decay_steps=1000,
-            t_mul=2.0,                  # n-th period decay steps : first_decay_steps * t_mul ** n
-            m_mul=1.0,                  # n-th period start learning rate : initial_learning_rate * m_mul ** n
-            alpha=0.0                   # 0.0 -> lr reach 0.0 ; 1.0 -> lr stays at initial learning rate
-        )
-
-        optimizer = Adam(learning_rate=learning_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
+        optimizer, lr_callbacks = YOLO.create_optimizer(optimizer_config, learning_rate)
 
         loss_yolo = YoloLoss(self._anchors, (self._grid_w, self._grid_h), self._batch_size,
                              lambda_coord=coord_scale, lambda_noobj=no_object_scale, lambda_obj=object_scale,
@@ -188,8 +169,8 @@ class YOLO(object):
         # Make a few callbacks (gère l'évolution du lr en fonction du temps et selon nos exigences)
         ############################################
 
-        reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2,
-                                                        patience = 7, min_lr = 0.00001, verbose = 1) #Reduce learning rate when a metric has stopped improving. This callback monitors a quantity and if no improvement is seen for a 'patience' number of epochs, the learning rate is reduced.
+        # reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2,
+        #                                                 patience = 7, min_lr = 0.00001, verbose = 1) #Reduce learning rate when a metric has stopped improving. This callback monitors a quantity and if no improvement is seen for a 'patience' number of epochs, the learning rate is reduced.
 
         early_stop_cb = EarlyStopping(monitor='val_loss',
                                       min_delta=0.001,
@@ -214,7 +195,7 @@ class YOLO(object):
                                     verbose=1,
                                     period=10)
         
-        #en dessous on ne l'a plus utilisé pour les callbacks
+        nan_callback = AntiNaN()
         
         map_evaluator_cb = MapEvaluation(self, valid_generator,
                                          save_best=False,
@@ -223,40 +204,30 @@ class YOLO(object):
                                          iou_threshold=iou_threshold,
                                          score_threshold=score_threshold)
 
-        self._warmup_batches = warmup_epochs * (train_times * len(train_generator) + valid_times * len(valid_generator))
-        if cosine_decay:
-            total_steps = int(nb_epochs * len(train_generator) / batch_size)
-            warmup_steps = int(warmup_epochs * len(train_generator) / batch_size)
-            warm_up_lr = WarmUpCosineDecayScheduler(learning_rate_base=learning_rate,
-                                                    total_steps=total_steps,
-                                                    warmup_learning_rate=0.0,
-                                                    warmup_steps=warmup_steps,
-                                                    hold_base_rate_steps=0)
-
-        if not isinstance(custom_callback, list):
-            custom_callback = [custom_callback]
-        callbacks = [ckp_best_loss, ckp_saver, tensorboard_cb, map_evaluator_cb] + custom_callback
+        callbacks = [ckp_best_loss, nan_callback] + lr_callbacks + custom_callbacks # buggy callbacks : ckp_saver, tensorboard_cb, map_evaluator_cb
         if early_stop:
             callbacks.append(early_stop_cb)
-        if cosine_decay:
-            callbacks.append(warm_up_lr)
-
-        callbacks = [reduce_lr, early_stop_cb, ckp_best_loss] #finalement on n'utilise que ce callback
 
         #############################
         # Start the training process
         #############################
 
-        history = self._model.fit_generator(generator=train_generator,
+        history = self._model.fit(x=train_generator,
                                   steps_per_epoch=len(train_generator) * train_times,
-                                  epochs=warmup_epochs + nb_epochs,
+                                  epochs=nb_epochs,
                                   validation_data=valid_generator,
-                                  validation_steps=len(valid_generator) * valid_times,
+                                  validation_steps=len(valid_generator),
                                   callbacks=callbacks,
                                   workers=workers,
-                                  max_queue_size=max_queue_size)
+                                  max_queue_size=max_queue_size).history
         
-        pickle.dump(history, open( f"{self._saved_pickles_path}/history/history_{root + '_bestLoss' + ext}.p", "wb" ) )
+        # Save hisotry as pickle
+        if self._saved_pickles_path != None:
+            pickle_file_path = f'{self._saved_pickles_path}/history/history_{root}_bestLoss{ext}.p'
+            pickel_dir_path ='/'.join(pickle_file_path.split('/')[:-1])
+            if not os.path.exists(pickel_dir_path):
+                os.makedirs(pickel_dir_path)
+            pickle.dump(history, open(pickle_file_path, "wb"))
 
     def predict(self, image, iou_threshold=0.5, score_threshold=0.5):
 
@@ -306,6 +277,123 @@ class YOLO(object):
             input_image = image[np.newaxis, ..., np.newaxis]
         
         return input_image
+
+    def create_optimizer(optimizer_config, default_lr):
+        """
+        Initialize an optimizer corresponding to `optimizer_config` dict.
+        """
+
+        if not 'name' in optimizer_config.keys():
+            raise Exception('Optimizer name not indicated')
+        
+        # Create learning-rate scheduler
+        lr_scheduler, lr_callbacks = YOLO.create_lr_scheduler(optimizer_config['lr_scheduler'], default_lr)
+
+        if optimizer_config['name'] == 'Adam':
+            # Parse Adam arguments
+            beta_1 = float(optimizer_config.get('beta_1', 0.9))
+            beta_2 = float(optimizer_config.get('beta_2', 0.999))
+            epsilon = float(optimizer_config.get('epsilon', 1e-08))
+            decay = float(optimizer_config.get('decay', 0.0))
+
+            # Initialize Adam
+            return Adam(
+                    learning_rate=lr_scheduler,
+                    beta_1=beta_1,
+                    beta_2=beta_2,
+                    epsilon=epsilon,
+                    decay=decay
+                ), lr_callbacks
+        
+        if optimizer_config['name'] == 'SGD':
+            # Parse SGD arguments
+            momentum = float(optimizer_config.get('momentum', 0.0))
+            nesterov = bool(optimizer_config.get('nesterov', False))
+
+            # Initialize SGD
+            return SGD(
+                    learning_rate=lr_scheduler,
+                    momentum=momentum,
+                    nesterov=nesterov
+                ), lr_callbacks
+
+        if optimizer_config['name'] == 'RMSprop':
+            # Parse RMSprop arguments
+            rho = float(optimizer_config.get('rho', 0.9))
+            momentum = float(optimizer_config.get('momentum', 0.0))
+            epsilon = float(optimizer_config.get('epsilon', 1e-07))
+            centered = optimizer_config.get('centered', False)
+
+            # Initialize RMSprop
+            return RMSprop(
+                    learning_rate=lr_scheduler,
+                    rho=rho,
+                    momentum=momentum,
+                    epsilon=epsilon,
+                    centered=centered
+                ), lr_callbacks
+        
+        # Incorrect optimizer name
+        raise Exception('Optimizer name \'%s\' is not valid, should be Adam, SGD or RMSprop' % optimizer_config['name'])
+
+    def create_lr_scheduler(lr_scheduler_config, default_lr):
+        """
+        Initialize learing-rate scheduler corresponding to `lr_scheduler_config` dict.
+        """
+        
+        # Empty scheduler and None scheduler
+        if not 'name' in lr_scheduler_config.keys():
+            return default_lr, []
+        if lr_scheduler_config['name'] in ('None', 'none'):
+            return default_lr, []
+        
+
+        if lr_scheduler_config['name'] in ('CosineDecayRestarts', 'CDR'):
+            # Parse CosineDecayRestarts arguments
+            initial_learning_rate = float(lr_scheduler_config.get('initial_learning_rate', 1e-4))
+            first_decay_steps = int(lr_scheduler_config.get('first_decay_steps', 1000))
+            t_mul = float(lr_scheduler_config.get('t_mul', 2.0))
+            m_mul = float(lr_scheduler_config.get('m_mul', 1.0))
+            alpha = float(lr_scheduler_config.get('alpha', 0.0))
+
+            # Initialize CosineDecayRestarts
+            return CosineDecayRestarts(
+                    initial_learning_rate=initial_learning_rate,
+                    first_decay_steps=first_decay_steps,
+                    t_mul=t_mul,
+                    m_mul=m_mul,
+                    alpha=alpha
+                ), []
+        
+        if lr_scheduler_config['name'] in ('ExponentialDecay', 'ED'):
+            # Parse ExponentialDecay arguments
+            initial_learning_rate = float(lr_scheduler_config.get('initial_learning_rate', 1e-4))
+            decay_steps = int(lr_scheduler_config.get('decay_steps', 1000))
+            decay_rate = float(lr_scheduler_config.get('decay_rate', 0.96))
+            staircase = bool(lr_scheduler_config.get('staircase', False))
+
+            # Initialize ExponentialDecay
+            return ExponentialDecay(
+                    initial_learning_rate=initial_learning_rate,
+                    decay_steps=decay_steps,
+                    decay_rate=decay_rate,
+                    staircase=staircase
+                ), []
+
+        if lr_scheduler_config['name'] in ('OneCycleScheduler', 'OCS'):
+            # Parse OneCycleScheduler arguments
+            lr_max = float(lr_scheduler_config.get('lr_max', 1e-3))
+            steps = int(lr_scheduler_config.get('steps', 1000))
+            mom_min = float(lr_scheduler_config.get('mom_min', 0.85))
+            mom_max = float(lr_scheduler_config.get('mom_max', 0.95))
+            phase_1_pct = float(lr_scheduler_config.get('phase_1_pct', 0.3))
+            div_factor = float(lr_scheduler_config.get('div_factor', 25.0))
+
+            # Initialize OneCycleScheduler
+            return default_lr, [OneCycleScheduler(lr_max, steps, mom_min, mom_max, phase_1_pct, div_factor)]
+
+        raise Exception('Learning-rate scheduler name \'%s\' is not valid, should be None, CosineDecayRestarts, ExponentialDecay or OneCycleScheduler' % lr_scheduler_config['name'])       
+
 
     @property
     def model(self):

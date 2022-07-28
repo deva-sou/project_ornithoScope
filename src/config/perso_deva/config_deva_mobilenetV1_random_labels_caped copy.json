@@ -10,7 +10,7 @@
     },
 
     "data" : {
-        "base_path":            "/home/deva/code/data_ornithoscope/raw_data/", 
+        "base_path":            "/home/dams1309/raw_data", 
         "train_csv_file":       "data/input_caped/input_train_random_300.csv",
         "test_csv_file":        ["data/input_caped/input_test_random_300.csv"], 
         "saved_weight_path":    "data/saved_weights/",
@@ -18,19 +18,23 @@
     },
 
     "train": {
-        "callback":             null,
         "train_times":          1,
         "pretrained_weights":   "data/saved_weights/MobileNet_random_caped_bestLoss.h5",
         "batch_size":           16,
         "learning_rate":        1e-3,
         "nb_epochs":            100,
-        "warmup_epochs":        0,
 
         "workers":              12,
         "max_queue_size":       40,
         "early_stop":           false,
-        "cosine_decay":         true,
         "tensorboard_log_dir":  "./logs/1",
+
+        "optimizer": {
+            "name": "Adam",
+            "lr_scheduler": {
+                "name": "None"
+            }
+        },
 
         "object_scale":         5.0 ,
         "no_object_scale":      1.0,
@@ -41,8 +45,7 @@
     },
 
     "valid": {
-        "iou_threshold":        0.7,
-        "score_threshold":      0.5,
-        "valid_times":          1
+        "iou_threshold":        0.4,
+        "score_threshold":      0.5
     }
 }

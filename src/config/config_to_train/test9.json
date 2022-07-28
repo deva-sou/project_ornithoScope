@@ -1,0 +1,61 @@
+{
+    "model" : {
+        "backend":              "MobileNet",
+        "input_size_w":         224,
+        "input_size_h":         224,
+        "gray_mode":            false,
+        "anchors":              [5.49950,8.57597, 9.26930,17.66783, 10.56113,10.43321, 15.44298,23.17856, 34.00303,34.41259],
+        "labels":               ["MESCHA", "SITTOR", "MESBLE", "MESNON", "PINARB", "ACCMOU", "ROUGOR", "VEREUR", "MOIDOM", "TOUTUR", "ECUROU", "PIEBAV", "MULGRI", "CAMPAG", "MESNOI", "MESHUP"],
+        "unwanted_labels":      ["noBird", "unknown"]
+    },
+
+    "data" : {
+        "base_path":            "/home/dams1309/raw_data", 
+        "train_csv_file":       "data/inputs/raw_data/cleaned_labels/input_train_caped300_cleaned.csv",
+        "valid_csv_file":       "",
+        "test_csv_file":        ["data/inputs/input_test.csv"], 
+        "saved_weight_path":    "data/saved_weights/",
+        "saved_pickles_path":   "data/pickles"
+    },
+
+    "train": {
+        "train_times":          1,
+        "pretrained_weights":   "data/saved_weights/new_weights/test9_bestLoss.h5",
+        "freeze":               false,
+        "batch_size":           16,
+        "learning_rate":        1e-3,
+        "nb_epochs":            150,
+
+        "workers":              12,
+        "max_queue_size":       40,
+        "early_stop":           true,
+        "tensorboard_log_dir":  "./logs/1",
+
+        "optimizer": {
+            "name":                         "SGD",
+            "momentum":                     0.0,
+            "nesterov":                     false,
+            "lr_scheduler": {
+                "name":                     "ED",
+                "initial_learning_rate":    1e-2,
+                "decay_steps":              2000,
+                "decay_rate":               0.96,
+                "staircase":                false
+            }
+        },
+
+        "object_scale":         5.0,
+        "no_object_scale":      1.0,
+        "coord_scale":          1.0,
+        "class_scale":          1.0,
+
+        "augmentation":         "v0",
+
+        "saved_weights_name":   "data/saved_weights/new_weights/test9.h5"
+    },
+
+    "valid": {
+        "iou_threshold":        0.4,
+        "score_threshold":      0.5
+    }
+}

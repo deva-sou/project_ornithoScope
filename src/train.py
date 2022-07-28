@@ -31,13 +31,10 @@ def _main_(args):
     ###############################
     #   Parse the annotations 
     ###############################
-    split = False
-    # parse annotations of the training set
     train_imgs, train_labels = parse_annotation_csv(config['data']['train_csv_file'],
                                                     config['model']['labels'],
                                                     config['data']['base_path'])
 
-    # parse annotations of the validation set, if any, otherwise split the training set
     valid_path = config['data']['valid_csv_file']
 
     if os.path.exists(valid_path):
@@ -59,10 +56,6 @@ def _main_(args):
     if len(config['model']['labels']) > 0:
         overlap_labels = set(config['model']['labels']).intersection(set(train_labels.keys()))
 
-        print('Seen labels:\t', train_labels)
-        print('Given labels:\t', config['model']['labels'])
-        print('Overlap labels:\t', overlap_labels)
-
         if len(overlap_labels) < len(config['model']['labels']):
             print('Some labels have no annotations! Please revise the list of labels in the config.json file!')
             return
@@ -71,8 +64,6 @@ def _main_(args):
         config['model']['labels'] = train_labels.keys()
         with open("labels.json", 'w') as outfile:
             json.dump({"labels": list(train_labels.keys())}, outfile)
-
-    print('Seen labels:\t', train_labels)
     
     ###############################
     #   Construct the model 
@@ -100,11 +91,9 @@ def _main_(args):
     yolo.train(train_imgs=train_imgs,
                valid_imgs=valid_imgs,
                train_times=config['train']['train_times'],
-               valid_times=config['valid']['valid_times'],
                nb_epochs=config['train']['nb_epochs'],
                learning_rate=config['train']['learning_rate'],
                batch_size=config['train']['batch_size'],
-               warmup_epochs=config['train']['warmup_epochs'],
                object_scale=config['train']['object_scale'],
                no_object_scale=config['train']['no_object_scale'],
                coord_scale=config['train']['coord_scale'],
@@ -114,12 +103,12 @@ def _main_(args):
                workers=config['train']['workers'],
                max_queue_size=config['train']['max_queue_size'],
                tb_logdir=config['train']['tensorboard_log_dir'],
-               train_generator_callback=config['train']['callback'],
+               optimizer_config=config['train']['optimizer'],
                iou_threshold=config['valid']['iou_threshold'],
                score_threshold=config['valid']['score_threshold'],
-               cosine_decay=config['train']['cosine_decay'],
                policy=config['train']['augmentation'],
-               saved_pickles_path = config['data']['saved_pickles_path'])
+               saved_pickles_path = config['data']['saved_pickles_path'],
+               custom_callbacks=[])
 
 
 if __name__ == '__main__':

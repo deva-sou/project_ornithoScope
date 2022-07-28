@@ -45,7 +45,7 @@ Depending on your OS, GPU and Drivers, you will need a custom install to use thi
 For that, you can use a virtual environment with [python venv](https://docs.python.org/3/library/venv.html)
 ```
 cd project_ornithoscope
-python3 -m venv venv_ornithoscope
+python3 -m venv venv_ornithoScope
 source venv_ornithoscope/bin/activate
 # optionnal: (depending on your hardware) 
 # pip install -r requirements.txt

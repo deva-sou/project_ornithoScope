@@ -74,9 +74,9 @@ def _main_(args):
     if len(config['model']['labels']) > 0:
         overlap_labels = set(config['model']['labels']).intersection(set(train_labels.keys()))
 
-        print('Seen labels:\t', train_labels)
-        print('Given labels:\t', config['model']['labels'])
-        print('Overlap labels:\t', overlap_labels)           
+        # print('Seen labels:\t', train_labels)
+        # print('Given labels:\t', config['model']['labels'])
+        # print('Overlap labels:\t', overlap_labels)           
 
         if len(overlap_labels) < len(config['model']['labels']):
             print('Some labels have no annotations! Please revise the list of labels in the config.json file!')

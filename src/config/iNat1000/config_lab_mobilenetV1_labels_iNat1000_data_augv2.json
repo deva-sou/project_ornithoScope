@@ -10,7 +10,7 @@
     },
 
     "data" : {
-        "base_path":            "/home/acarlier/code/data_ornithoscope/p0133_bird_data/raw_data/", 
+        "base_path":            "/home/dams1309/raw_data", 
         "train_csv_file":       "data/iNat1000/iNat-1000.csv",
         "valid_csv_file":       "",
         "test_csv_file":        ["data/inputs/input_test.csv"], 
@@ -19,19 +19,23 @@
     },
 
     "train": {
-        "callback":             null,
         "train_times":          1,
         "pretrained_weights":   "data/saved_weights/iNat1000/MobileNet_iNat1000_data_aug_v2_bestLoss.h5",
         "batch_size":           16,
         "learning_rate":        1e-3,
         "nb_epochs":            100,
-        "warmup_epochs":        0,
 
         "workers":              12,
         "max_queue_size":       40,
         "early_stop":           false,
-        "cosine_decay":         true,
         "tensorboard_log_dir":  "./logs/1",
+
+        "optimizer": {
+            "name": "Adam",
+            "lr_scheduler": {
+                "name": "None"
+            }
+        },
 
         "object_scale":         5.0 ,
         "no_object_scale":      1.0,
@@ -44,8 +48,7 @@
     },
 
     "valid": {
-        "iou_threshold":        0.7,
-        "score_threshold":      0.5,
-        "valid_times":          1
+        "iou_threshold":        0.4,
+        "score_threshold":      0.5
     }
 }
