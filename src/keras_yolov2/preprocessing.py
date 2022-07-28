@@ -389,7 +389,7 @@ class BatchGenerator(Sequence):
                 all_objs.append(obj)
 
         
-        '''Encore à adapter: changer les img_path par peut-être image et aussi les bbox'''
+        
         if jitter=='mosaic': #si on utilise l'augmentation de données mosaic
             
             OUTPUT_SIZE = (1024, 1024) # Height, Width
@@ -408,13 +408,14 @@ class BatchGenerator(Sequence):
                 new_image, new_annos = update_image_and_anno(img_paths, annos, idxs, OUTPUT_SIZE, SCALE_RANGE, filter_scale=FILTER_TINY_SCALE)
                 # Update to get new graph and corresponding data anno
                 cv2.imwrite('./img/wind_output.jpg', new_image)
+                print("coucou")
                 #annos yes 
                 for anno in new_annos:
                     start_point = (int(anno[1] * OUTPUT_SIZE[1]), int(anno[2] * OUTPUT_SIZE[0]))# Top left corner 
                     end_point = (int(anno[3] * OUTPUT_SIZE[1]), int(anno[4] * OUTPUT_SIZE[0]))# Lower right corner 
                     cv2.rectangle(new_image, start_point, end_point, (0, 255, 0), 1, cv2.LINE_AA)# Once per cycle, a rectangle is formed in the composite drawing 
                     
-                cv2.imwrite('data/imgs/img_mosaic/image.jpg', new_image)
+                cv2.imwrite('data/imgs/img_mosaic/image.jpg', new_image) #doit créer un nouveau fichier avec les nouvelles données?
 
                 new_image = cv2.cvtColor(new_image, cv2.COLOR_BGR2RGB)
                 new_image = Image.fromarray(new_image.astype(np.uint8))
@@ -522,25 +523,5 @@ class BatchGenerator(Sequence):
                     print(img_paths)
                 return img_paths, annos
 
-
             if __name__ == '__main__':
                 main()
-            
-
-            # resize the image to standard size
-        image = cv2.resize(image, (self._config['IMAGE_W'], self._config['IMAGE_H']))
-        if self._config['IMAGE_C'] == 1:
-            image = image[..., np.newaxis]
-        image = image[..., ::-1]  # make it RGB (it is important for normalization of some backends)
-
-        # fix object's position and size
-        for obj in all_objs:
-            for attr in ['xmin', 'xmax']:
-                obj[attr] = int(obj[attr] * float(self._config['IMAGE_W']) / w)
-                obj[attr] = max(min(obj[attr], self._config['IMAGE_W']), 0)
-
-            for attr in ['ymin', 'ymax']:
-                obj[attr] = int(obj[attr] * float(self._config['IMAGE_H']) / h)
-                obj[attr] = max(min(obj[attr], self._config['IMAGE_H']), 0)
-
-        return image, all_objs

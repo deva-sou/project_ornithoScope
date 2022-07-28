@@ -23,7 +23,7 @@
         "pretrained_weights":   "",
         "batch_size":           16,
         "learning_rate":        0.001,
-        "nb_epochs":            80,
+        "nb_epochs":            2,
 
         "workers":              12,
         "max_queue_size":       40,
@@ -44,7 +44,7 @@
         "coord_scale":          1.0,
         "class_scale":          1.0,
 
-        "augmentation":         "v0",
+        "augmentation":         "mosaic",
 
         "saved_weights_name":   "data/saved_weights/new_weights/Adam_OCS_batchsize16_1e-5à1e-2_v0.h5"
     },
