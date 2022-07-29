@@ -11,7 +11,7 @@
 
     "data" : {
         "base_path":            "/home/dams1309/raw_data",
-        "train_csv_file":       "data/inputs/raw_data/cleaned_labels/input_train_caped300_cleaned.csv",
+        "train_csv_file":       "data/inputs/input_train.csv",
         "test_csv_file":        ["data/inputs/input_test.csv"], 
         "valid_csv_file":       "",
         "saved_weight_path":    "data/saved_weights/",
