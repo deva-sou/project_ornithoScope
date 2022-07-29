@@ -23,7 +23,8 @@ def main(args):
                                         config['model']['labels'],
                                         config['data']['base_path'])
     
-    id = 100
+    print(len(train_imgs))
+    id = 2084
     running = True
     while running:
         train_img = train_imgs[id]
@@ -40,7 +41,8 @@ def main(args):
             id += 1
         elif key == 84:
             id -= 1
-        print(id)
+        elif key == 81 or key == 83:
+            print(id, train_img['filename'])
 
 
 if __name__ == "__main__":
