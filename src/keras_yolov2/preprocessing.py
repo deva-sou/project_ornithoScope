@@ -460,8 +460,6 @@ class BatchGenerator(Sequence):
 
                 x_batch[instance_count] = img
 
-        # cv2.imshow('Mosaic?', x_batch[0][:,:,::-1])
-        # cv2.waitKey(0)
         return x_batch, y_batch
 
     def _change_obj_position(self, y_batch, anchors_map, idx, box, iou):
@@ -517,18 +515,8 @@ class BatchGenerator(Sequence):
                 bbs.append([xmin, ymin, xmax, ymax])
                 labels_bbs.append(self._config['LABELS'].index(obj['name']))
 
-            # cv2.imshow('Before augmentation', cv2.resize(image, (w // 3, h // 3)))
-
             random_policy = self._policy_chosen.select_random_policy()
             image, bbs = self._policy_chosen.apply_augmentation(random_policy, image, bbs, labels_bbs)
-            
-
-            # for bbox in bbs:
-            #     cv2.rectangle(image, (bbox[1], bbox[2]), (bbox[3], bbox[4]), (0, 255, 0), 5)
-            # draw_boxes(image, [BoundBox(bbox[1], bbox[2], bbox[3], bbox[4], c=1.0, classes=[0 if i != bbox[0] else 1 for i in range(len(self._config['LABELS']))]) for bbox in bbs], self._config['LABELS'])
-            
-            # cv2.imshow('After augmentation', cv2.resize(image, (w // 3, h // 3)))
-            # cv2.waitKey(0) #attend indéfiniment grâce au 0 (1000 = une sec)
             
             # Recreate bounding boxes
             all_objs = []
