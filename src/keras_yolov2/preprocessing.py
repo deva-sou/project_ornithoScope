@@ -109,10 +109,10 @@ def parse_annotation_csv(csv_file, labels=[], base_path=""):
                 obj['ymax'] = float(ymax)
                 obj['name'] = obj_name
 
-                if len(labels) > 0 and obj_name not in labels:
-                    continue
-                else:
-                    img['object'].append(obj)
+                # if len(labels) > 0 and obj_name not in labels:
+                #     continue
+                # else:
+                img['object'].append(obj)
 
                 if fname not in all_imgs_indices:
                     all_imgs_indices[fname] = count_indice
@@ -133,11 +133,12 @@ def parse_annotation_csv(csv_file, labels=[], base_path=""):
 
 
 def resize_bbox(bbox, initial_size, final_size):
-    bbox['xmin'] *= final_size[0] / initial_size[0]
-    bbox['xmax'] *= final_size[0] / initial_size[0]
-    bbox['ymin'] *= final_size[1] / initial_size[1]
-    bbox['ymax'] *= final_size[1] / initial_size[1]
-    return bbox
+    new_bbox = bbox.copy()
+    new_bbox['xmin'] *= final_size[0] / initial_size[0] #association et mutliplication en même temps  a *= b donne a = a * b
+    new_bbox['xmax'] *= final_size[0] / initial_size[0]
+    new_bbox['ymin'] *= final_size[1] / initial_size[1]
+    new_bbox['ymax'] *= final_size[1] / initial_size[1]
+    return new_bbox
 
 
 class CustomPolicy(policies.PolicyContainer):
@@ -191,9 +192,40 @@ class CustomPolicy(policies.PolicyContainer):
             ]
     
 
-    def mosaic_augmentation(self, magnitude: int):
+    def mosaic_augmentation(self, magnitude: int): #probème: il faut remettre tous les dic à 0 à la fin de chaque epoch
+        self.image_id=image_id
+        image_id = [i for i in range(4000)]
         def aug(image, bounding_boxes):
-            return self.Mosaic(idxs=np.random.randint(0, 100, 4), output_size=(1080, 1080, 3), scale_range=(0.3, 0.7), filter_scale=0.0)
+            # print(image, bounding_boxes)
+
+            dic={}
+            [id0, id1, id2, id3] = np.random.choices(image_id,4)
+            if id0 not in dic:
+                dic[id0]  =  1
+            if id1 not in dic:
+                dic[id1]  =  1
+            if id2 not in dic:
+                dic[id2]  =  1
+            if id3 not in dic:
+                dic[id3]  =  1
+            
+            dic[id0] += 1
+            if dic[id0]>=5:
+                del image_id[id0]
+            dic[id1] += 1
+            if dic[id1]>=5:
+                del image_id[id1]
+            dic[id2] += 1
+            if dic[id2]>=5:
+                del image_id[id2]
+            dic[id3] += 1
+            if dic[id3]>=5:
+                del image_id[id3]
+            if len(image_id==0):
+                image_id=[i for i in range(4000)]
+                dic={}
+            return self.Mosaic(idxs=(id0, id1, id2, id3), output_size=(1080, 1080, 3), scale_range=(0.3, 0.7), filter_scale=0.0)
+            
         return aug
 
     
@@ -269,15 +301,8 @@ class CustomPolicy(policies.PolicyContainer):
             bboxs = self.all_bboxs[idx]
 
             img = cv2.imread(path)
-
+            
             if i == 0:  # top-left
-                img_c = img.copy()
-                h, w, _ = img_c.shape
-                for bbox in bboxs:
-                    cv2.rectangle(img_c, (int(bbox['xmin']), int(bbox['ymin'])), (int(bbox['xmax']), int(bbox['ymax'])), (0, 255, 0), 5)
-                cv2.imshow('top-left', cv2.resize(img_c, (w // 3, h // 3)))
-
-
                 initial_size = img.shape[-2::-1]
                 final_size = (divid_point_x, divid_point_y)
                 img = cv2.resize(img, final_size)
