@@ -42,6 +42,7 @@
         "class_scale":          1.0,
 
         "augmentation":         "v1",
+        "mosaic":               "none",
 
         "saved_weights_name":   "data/saved_weights/data_aug_policies/MobileNet_full_data_aug_v1.h5"
     },

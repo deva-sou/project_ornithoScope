@@ -50,6 +50,7 @@
         "class_scale":          1.0,
 
         "augmentation":         "v0",
+        "mosaic":               "none",
 
         "saved_weights_name":   "data/saved_weights/new_weights/test7.h5"
     },

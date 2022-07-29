@@ -54,6 +54,7 @@
         "class_scale":          1.0,
 
         "augmentation":         "none",
+        "mosaic":               "none",
 
         "saved_weights_name":   "data/saved_weights/new_weights/ADAM_OCS_none.h5"
     },

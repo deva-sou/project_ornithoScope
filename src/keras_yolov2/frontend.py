@@ -105,6 +105,7 @@ class YOLO(object):
               class_scale,
               policy,
               optimizer_config,
+              mosaic='none',
               saved_pickles_path=None,
               saved_weights_name='best_weights.h5',
               workers=3,
@@ -140,6 +141,7 @@ class YOLO(object):
             'CLASS': len(self.labels),
             'ANCHORS': self._anchors,
             'BATCH_SIZE': self._batch_size,
+            'MOSAIC': mosaic,
         }
         
         #train_imgs: the list of img to train the model, donc format jpg

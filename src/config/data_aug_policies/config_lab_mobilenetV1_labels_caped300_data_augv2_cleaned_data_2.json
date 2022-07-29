@@ -44,6 +44,7 @@
         "class_scale":          1.0,
 
         "augmentation":         "v2",
+        "mosaic":               "none",
 
         "saved_weights_name":   "data/saved_weights/data_aug_policies/MobileNet_caped300_data_aug_v2_cleaned_data.h5"
     },

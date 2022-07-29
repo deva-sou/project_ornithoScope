@@ -107,6 +107,7 @@ def _main_(args):
                iou_threshold=config['valid']['iou_threshold'],
                score_threshold=config['valid']['score_threshold'],
                policy=config['train']['augmentation'],
+               mosaic=config['train']['mosaic'],
                saved_pickles_path = config['data']['saved_pickles_path'],
                custom_callbacks=[])
 

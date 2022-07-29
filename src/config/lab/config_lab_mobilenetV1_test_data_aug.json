@@ -51,6 +51,7 @@
         "class_scale":          1.0,
 
         "augmentation":         "v12",
+        "mosaic":               "none",
 
         "saved_weights_name":   "data/saved_weights/MobileNet_data_augmentation.h5"
     },

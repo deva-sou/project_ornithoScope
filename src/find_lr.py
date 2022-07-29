@@ -102,6 +102,7 @@ def _main_(args):
                iou_threshold=config['valid']['iou_threshold'],
                score_threshold=config['valid']['score_threshold'],
                policy='none',
+               mosaic='none',
                saved_pickles_path=None,
                custom_callbacks=[lr_finder_callback])
     
