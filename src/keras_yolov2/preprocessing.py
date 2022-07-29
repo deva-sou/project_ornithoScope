@@ -414,28 +414,6 @@ class BatchGenerator(Sequence):
     def size(self):
         return len(self._images)
 
-    def load_annotation(self, i):
-        annots = []
-
-        for obj in self._images[i]['object']:
-            annot = [obj['xmin'], obj['ymin'], obj['xmax'], obj['ymax'], self._config['LABELS'].index(obj['name'])]
-            annots += [annot]
-
-        if len(annots) == 0:
-            annots = [[]]
-
-        return np.array(annots)
-
-    def load_image(self, i):
-        if self._config['IMAGE_C'] == 1:
-            image = cv2.imread(self._images[i]['filename'], cv2.IMREAD_GRAYSCALE)
-            image = image[..., np.newaxis]
-        elif self._config['IMAGE_C'] == 3:
-            image = cv2.imread(self._images[i]['filename'])
-        else:
-            raise ValueError("Invalid number of image channels.")
-        return image, '/'.join(self._images[i]['filename'].split('/')[-2:])
-
     def __getitem__(self, idx):
         # Set lower an upper id for this batch
         l_bound = idx * self._config['BATCH_SIZE']
@@ -487,7 +465,6 @@ class BatchGenerator(Sequence):
                     box = [obj_center_x, obj_center_y, obj_w, obj_h]
 
                     # find the anchor that best predicts this box
-                    # TODO: check f this part below is working correctly
                     best_anchor_idx = -1
                     max_iou = -1
 
