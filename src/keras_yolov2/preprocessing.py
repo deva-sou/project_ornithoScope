@@ -345,7 +345,7 @@ class BatchGenerator(Sequence):
 
                 new_anno = []
 
-                for i, idx in enumerate(idxs):
+                for i, idx in enumerate(idxs): #i le numéro de l'image et idx l'id "naturel de l'image", exemple for i, lettre in enumerate(mot): renvoie 1,m
         
                     path = all_img_list[idx]
                     img_annos = all_annos[idx]
