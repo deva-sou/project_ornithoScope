@@ -109,10 +109,10 @@ def parse_annotation_csv(csv_file, labels=[], base_path=""):
                 obj['ymax'] = float(ymax)
                 obj['name'] = obj_name
 
-                # if len(labels) > 0 and obj_name not in labels:
-                #     continue
-                # else:
-                img['object'].append(obj)
+                if len(labels) > 0 and obj_name not in labels:
+                    continue
+                else:
+                    img['object'].append(obj)
 
                 if fname not in all_imgs_indices:
                     all_imgs_indices[fname] = count_indice
@@ -134,7 +134,7 @@ def parse_annotation_csv(csv_file, labels=[], base_path=""):
 
 def resize_bbox(bbox, initial_size, final_size):
     new_bbox = bbox.copy()
-    new_bbox['xmin'] *= final_size[0] / initial_size[0] #association et mutliplication en même temps  a *= b donne a = a * b
+    new_bbox['xmin'] *= final_size[0] / initial_size[0]
     new_bbox['xmax'] *= final_size[0] / initial_size[0]
     new_bbox['ymin'] *= final_size[1] / initial_size[1]
     new_bbox['ymax'] *= final_size[1] / initial_size[1]
@@ -153,7 +153,6 @@ class CustomPolicy(policies.PolicyContainer):
         name_to_augmentation = augmentations.NAME_TO_AUGMENTATION.copy()
         name_to_augmentation.update({
                 'PerlinShadows': self.shadows_augmentation,
-                'Mosaic': self.mosaic_augmentation,
             })
         super().__init__(None, name_to_augmentation=name_to_augmentation)
 
@@ -176,7 +175,6 @@ class CustomPolicy(policies.PolicyContainer):
     
     def select_random_policy(self):
         return [
-                policies.POLICY_TUPLE('Mosaic', 1.0, 3),
                 # policies.POLICY_TUPLE('PerlinShadows', 0.3, 8),
                 # policies.POLICY_TUPLE('Brightness', 0.2, 1),
                 # policies.POLICY_TUPLE('Cutout', 0.2, 6),
@@ -190,43 +188,6 @@ class CustomPolicy(policies.PolicyContainer):
                 # policies.POLICY_TUPLE('Translate_Y', 0.2, 3),
                 # policies.POLICY_TUPLE('Translate_Y_BBox', 0.2, 3),                
             ]
-    
-
-    def mosaic_augmentation(self, magnitude: int): #probème: il faut remettre tous les dic à 0 à la fin de chaque epoch
-        self.image_id=image_id
-        image_id = [i for i in range(4000)]
-        def aug(image, bounding_boxes):
-            # print(image, bounding_boxes)
-
-            dic={}
-            [id0, id1, id2, id3] = np.random.choices(image_id,4)
-            if id0 not in dic:
-                dic[id0]  =  1
-            if id1 not in dic:
-                dic[id1]  =  1
-            if id2 not in dic:
-                dic[id2]  =  1
-            if id3 not in dic:
-                dic[id3]  =  1
-            
-            dic[id0] += 1
-            if dic[id0]>=5:
-                del image_id[id0]
-            dic[id1] += 1
-            if dic[id1]>=5:
-                del image_id[id1]
-            dic[id2] += 1
-            if dic[id2]>=5:
-                del image_id[id2]
-            dic[id3] += 1
-            if dic[id3]>=5:
-                del image_id[id3]
-            if len(image_id==0):
-                image_id=[i for i in range(4000)]
-                dic={}
-            return self.Mosaic(idxs=(id0, id1, id2, id3), output_size=(1080, 1080, 3), scale_range=(0.3, 0.7), filter_scale=0.0)
-            
-        return aug
 
     
     def shadows_augmentation(self, magnitude: int):
@@ -288,77 +249,65 @@ class CustomPolicy(policies.PolicyContainer):
         return (-np.cos(np.pi * x) + 1) / 2
 
 
-    def Mosaic(self, idxs, output_size, scale_range, filter_scale=0.):
-        output_image = np.zeros(output_size, dtype=np.uint8)
-        scale_x = scale_range[0] + np.random.random() * (scale_range[1] - scale_range[0])
-        scale_y = scale_range[0] + np.random.random() * (scale_range[1] - scale_range[0])
-        divid_point_x = int(scale_x * output_size[1])
-        divid_point_y = int(scale_y * output_size[0])
+def create_mosaic(imgs, all_bbs, labels, output_size, scale_range, filter_scale=0.0):
+    output_image = np.zeros(output_size, dtype=np.uint8)
+    scale_x = scale_range[0] + np.random.random() * (scale_range[1] - scale_range[0])
+    scale_y = scale_range[0] + np.random.random() * (scale_range[1] - scale_range[0])
+    divid_point_x = int(scale_x * output_size[1])
+    divid_point_y = int(scale_y * output_size[0])
 
-        new_bboxs = []
-        for i, idx in enumerate(idxs):
-            path = self.all_path[idx] 
-            bboxs = self.all_bboxs[idx]
-
-            img = cv2.imread(path)
-            
-            if i == 0:  # top-left
-                initial_size = img.shape[-2::-1]
-                final_size = (divid_point_x, divid_point_y)
-                img = cv2.resize(img, final_size)
-                output_image[:divid_point_y, :divid_point_x, :] = img
-                for bbox in bboxs:
-                    bbox = resize_bbox(bbox, initial_size, final_size)
-                    xmin = bbox['xmin']
-                    ymin = bbox['ymin']
-                    xmax = bbox['xmax']
-                    ymax = bbox['ymax']
-                    new_bboxs.append(BoundingBox(xmin, ymin, xmax, ymax, self._config['LABELS'].index(bbox['name'])))
-
-            elif i == 1:  # top-right
-                initial_size = img.shape[-2::-1]
-                final_size = (output_size[1] - divid_point_x, divid_point_y)
-                img = cv2.resize(img, final_size)
-                output_image[:divid_point_y, divid_point_x:, :] = img
-                for bbox in bboxs:
-                    bbox = resize_bbox(bbox, initial_size, final_size)
-                    xmin = bbox['xmin'] + divid_point_x
-                    ymin = bbox['ymin']
-                    xmax = bbox['xmax'] + divid_point_x
-                    ymax = bbox['ymax']
-                    new_bboxs.append(BoundingBox(xmin, ymin, xmax, ymax, self._config['LABELS'].index(bbox['name'])))
-
-            elif i == 2:  # bottom-left
-                initial_size = img.shape[-2::-1]
-                final_size = (divid_point_x, output_size[0] - divid_point_y)
-                img = cv2.resize(img, final_size)
-                output_image[divid_point_y:, :divid_point_x, :] = img
-                for bbox in bboxs:
-                    bbox = resize_bbox(bbox, initial_size, final_size)
-                    xmin = bbox['xmin']
-                    ymin = bbox['ymin'] + divid_point_y
-                    xmax = bbox['xmax']
-                    ymax = bbox['ymax'] + divid_point_y
-                    new_bboxs.append(BoundingBox(xmin, ymin, xmax, ymax, self._config['LABELS'].index(bbox['name'])))
-
-            else:  # bottom-right
-                initial_size = img.shape[-2::-1]
-                final_size = (output_size[1] - divid_point_x, output_size[0] - divid_point_y)
-                img = cv2.resize(img, final_size)
-                output_image[divid_point_y:, divid_point_x:, :] = img
-                for bbox in bboxs:
-                    bbox = resize_bbox(bbox, initial_size, final_size)
-                    xmin = bbox['xmin'] + divid_point_x
-                    ymin = bbox['ymin'] + divid_point_y
-                    xmax = bbox['xmax'] + divid_point_x
-                    ymax = bbox['ymax'] + divid_point_y
-                    new_bboxs.append(BoundingBox(xmin, ymin, xmax, ymax, self._config['LABELS'].index(bbox['name'])))
-
-        # if 0 < filter_scale:
-        #     new_bboxs = [anno for anno in new_bboxs if
-        #                 filter_scale < (anno[3] - anno[1]) and filter_scale < (anno[4] - anno[2])]
+    new_bboxs = []
+    for i, (img, bboxs) in enumerate(zip(imgs, all_bbs)):
         
-        return output_image, BoundingBoxesOnImage(new_bboxs, output_size)
+        if i == 0:  # top-left
+            initial_size = img.shape[-2::-1]
+            final_size = (divid_point_x, divid_point_y)
+            img = cv2.resize(img, final_size)
+            output_image[:divid_point_y, :divid_point_x, :] = img
+            for bbox in bboxs:
+                bbox = resize_bbox(bbox, initial_size, final_size)
+                new_bboxs.append(bbox)
+
+        elif i == 1:  # top-right
+            initial_size = img.shape[-2::-1]
+            final_size = (output_size[1] - divid_point_x, divid_point_y)
+            img = cv2.resize(img, final_size)
+            output_image[:divid_point_y, divid_point_x:, :] = img
+            for bbox in bboxs:
+                bbox = resize_bbox(bbox, initial_size, final_size)
+                bbox['xmin'] += divid_point_x
+                bbox['xmax'] += divid_point_x
+                new_bboxs.append(bbox)
+
+        elif i == 2:  # bottom-left
+            initial_size = img.shape[-2::-1]
+            final_size = (divid_point_x, output_size[0] - divid_point_y)
+            img = cv2.resize(img, final_size)
+            output_image[divid_point_y:, :divid_point_x, :] = img
+            for bbox in bboxs:
+                bbox = resize_bbox(bbox, initial_size, final_size)
+                bbox['ymin'] += divid_point_y
+                bbox['ymax'] += divid_point_y
+                new_bboxs.append(bbox)
+
+        else:  # bottom-right
+            initial_size = img.shape[-2::-1]
+            final_size = (output_size[1] - divid_point_x, output_size[0] - divid_point_y)
+            img = cv2.resize(img, final_size)
+            output_image[divid_point_y:, divid_point_x:, :] = img
+            for bbox in bboxs:
+                bbox = resize_bbox(bbox, initial_size, final_size)
+                bbox['xmin'] += divid_point_x
+                bbox['ymin'] += divid_point_y
+                bbox['xmax'] += divid_point_x
+                bbox['ymax'] += divid_point_y
+                new_bboxs.append(bbox)
+
+    # if 0 < filter_scale:
+    #     new_bboxs = [anno for anno in new_bboxs if
+    #                 filter_scale < (anno[3] - anno[1]) and filter_scale < (anno[4] - anno[2])]
+    
+    return output_image, new_bboxs
 
 
 class BatchGenerator(Sequence):
@@ -381,7 +330,7 @@ class BatchGenerator(Sequence):
             np.random.shuffle(self._images)
     
     def __len__(self):
-        return int(np.ceil(float(len(self._images)) / self._config['BATCH_SIZE']))
+        return int(np.ceil(float(len(self._images)) / self._config['IMG_PER_BATCH']))
 
     def get_policy_container(self):
         data_aug_policies = {
@@ -407,36 +356,50 @@ class BatchGenerator(Sequence):
             print('Choose beetween:\n')
             print(list(data_aug_policies.keys()))
             exit(1)
-    
-    def num_classes(self):
-        return len(self._config['LABELS'])
-
-    def size(self):
-        return len(self._images)
 
     def __getitem__(self, idx):
         # Set lower an upper id for this batch
-        l_bound = idx * self._config['BATCH_SIZE']
-        r_bound = (idx + 1) * self._config['BATCH_SIZE']
+        l_bound = idx * self._config['IMG_PER_BATCH']
+        r_bound = (idx + 1) * self._config['IMG_PER_BATCH']
 
         # Fix upper bound grate than number of image
         if r_bound > len(self._images):
             r_bound = len(self._images)
-            l_bound = r_bound - self._config['BATCH_SIZE']
+            l_bound = r_bound - self._config['IMG_PER_BATCH']
 
         # Initialize batch's input and output
-        x_batch = np.zeros((r_bound - l_bound, self._config['IMAGE_H'], self._config['IMAGE_W'],
+        x_batch = np.zeros((self._config['BATCH_SIZE'], self._config['IMAGE_H'], self._config['IMAGE_W'],
                             self._config['IMAGE_C']))
-        y_batch = np.zeros((r_bound - l_bound, self._config['GRID_H'], self._config['GRID_W'], self._config['BOX'],
+        y_batch = np.zeros((self._config['BATCH_SIZE'], self._config['GRID_H'], self._config['GRID_W'], self._config['BOX'],
                             4 + 1 + len(self._config['LABELS'])))
 
 
-        anchors_populated_map = np.zeros((r_bound - l_bound, self._config['GRID_H'], self._config['GRID_W'],
+        anchors_populated_map = np.zeros((self._config['BATCH_SIZE'], self._config['GRID_H'], self._config['GRID_W'],
                                           self._config['BOX']))
 
-        for instance_count in range(r_bound - l_bound):
-            # Augment input image and bounding boxes' attributes
-            img, all_bbs = self.aug_image(l_bound + instance_count)
+        for instance_count in range(self._config['BATCH_SIZE']):
+            if self._config['MOSAIC'] == 'none':
+                # Augment input image and bounding boxes' attributes
+                img, all_bbs = self.aug_image(l_bound + instance_count)
+            else:
+                imgs = []
+                all_bbs = []
+                for i in range(4):
+                    # Augment input image and bounding boxes' attributes
+                    img, bbs = self.aug_image(l_bound + 4 * instance_count + i)
+                    imgs.append(img)
+                    all_bbs.append(bbs)
+
+                # Merge images to create mosaic
+                img, all_bbs = create_mosaic(
+                        imgs=imgs,
+                        all_bbs=all_bbs,
+                        labels=self._config['LABELS'],
+                        output_size=(self._config['IMAGE_W'], self._config['IMAGE_H'], 3),
+                        scale_range=(0.3, 0.7),
+                        filter_scale=0.0
+                    )
+                
 
             for bb in all_bbs:
                 # Check if it is a valid boudning box
@@ -497,6 +460,8 @@ class BatchGenerator(Sequence):
 
                 x_batch[instance_count] = img
 
+        # cv2.imshow('Mosaic?', x_batch[0][:,:,::-1])
+        # cv2.waitKey(0)
         return x_batch, y_batch
 
     def _change_obj_position(self, y_batch, anchors_map, idx, box, iou):
@@ -552,18 +517,18 @@ class BatchGenerator(Sequence):
                 bbs.append([xmin, ymin, xmax, ymax])
                 labels_bbs.append(self._config['LABELS'].index(obj['name']))
 
-            cv2.imshow('Before augmentation', cv2.resize(image, (w // 3, h // 3)))
+            # cv2.imshow('Before augmentation', cv2.resize(image, (w // 3, h // 3)))
 
             random_policy = self._policy_chosen.select_random_policy()
             image, bbs = self._policy_chosen.apply_augmentation(random_policy, image, bbs, labels_bbs)
             
 
-            for bbox in bbs:
-                cv2.rectangle(image, (bbox[1], bbox[2]), (bbox[3], bbox[4]), (0, 255, 0), 5)
+            # for bbox in bbs:
+            #     cv2.rectangle(image, (bbox[1], bbox[2]), (bbox[3], bbox[4]), (0, 255, 0), 5)
             # draw_boxes(image, [BoundBox(bbox[1], bbox[2], bbox[3], bbox[4], c=1.0, classes=[0 if i != bbox[0] else 1 for i in range(len(self._config['LABELS']))]) for bbox in bbs], self._config['LABELS'])
             
-            cv2.imshow('After augmentation', cv2.resize(image, (w // 3, h // 3)))
-            cv2.waitKey(0) #attend indéfiniment grâce au 0 (1000 = une sec)
+            # cv2.imshow('After augmentation', cv2.resize(image, (w // 3, h // 3)))
+            # cv2.waitKey(0) #attend indéfiniment grâce au 0 (1000 = une sec)
             
             # Recreate bounding boxes
             all_objs = []

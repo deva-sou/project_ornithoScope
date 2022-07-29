@@ -141,6 +141,7 @@ class YOLO(object):
             'CLASS': len(self.labels),
             'ANCHORS': self._anchors,
             'BATCH_SIZE': self._batch_size,
+            'IMG_PER_BATCH': self._batch_size if mosaic == 'none' else self._batch_size * 4,
             'MOSAIC': mosaic,
         }
         
