@@ -175,7 +175,7 @@ class CustomPolicy(policies.PolicyContainer):
     
     def select_random_policy(self):
         return [
-                # policies.POLICY_TUPLE('PerlinShadows', 0.3, 8),
+                policies.POLICY_TUPLE('PerlinShadows', 0.3, 8),
                 # policies.POLICY_TUPLE('Brightness', 0.2, 1),
                 # policies.POLICY_TUPLE('Cutout', 0.2, 6),
                 # policies.POLICY_TUPLE('Cutout_BBox', 1.0, 2),
@@ -331,6 +331,31 @@ class BatchGenerator(Sequence):
     
     def __len__(self):
         return int(np.ceil(float(len(self._images)) / self._config['IMG_PER_BATCH']))
+
+    def size(self):
+        return len(self._images)
+
+    def load_annotation(self, i):
+        annots = []
+
+        for obj in self._images[i]['object']:
+            annot = [obj['xmin'], obj['ymin'], obj['xmax'], obj['ymax'], self._config['LABELS'].index(obj['name'])]
+            annots += [annot]
+
+        if len(annots) == 0:
+            annots = [[]]
+
+        return np.array(annots)
+
+    def load_image(self, i):
+        if self._config['IMAGE_C'] == 1:
+            image = cv2.imread(self._images[i]['filename'], cv2.IMREAD_GRAYSCALE)
+            image = image[..., np.newaxis]
+        elif self._config['IMAGE_C'] == 3:
+            image = cv2.imread(self._images[i]['filename'])
+        else:
+            raise ValueError("Invalid number of image channels.")
+        return image, '/'.join(self._images[i]['filename'].split('/')[-2:])
 
     def get_policy_container(self):
         data_aug_policies = {
