@@ -11,7 +11,7 @@
 
     "data" : {
         "base_path":            "/home/dams1309/raw_data", 
-        "train_csv_file":       "data/inputs/input_train.csv",
+        "train_csv_file":       "data/inputs/input_train_cap300.csv",
         "valid_csv_file":       "",
         "test_csv_file":        ["data/inputs/input_test.csv"], 
         "saved_weight_path":    "data/saved_weights/",
@@ -24,7 +24,7 @@
         "freeze":               false,
         "batch_size":           16,
         "learning_rate":        1e-3,
-        "nb_epochs":            2,
+        "nb_epochs":            50,
 
         "workers":              12,
         "max_queue_size":       40,
@@ -53,8 +53,8 @@
         "coord_scale":          1.0,
         "class_scale":          1.0,
 
-        "augmentation":         "custom",
-        "mosaic":               "none",
+        "augmentation":         "v0",
+        "mosaic":               "true",
 
         "saved_weights_name":   "data/saved_weights/new_weights/ADAM_OCS_mosaic.h5"
     },

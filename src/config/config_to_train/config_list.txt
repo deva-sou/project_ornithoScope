@@ -1,0 +1,2 @@
+config/config_to_train/ADAM_OCS_v2_fixcap.json
+config/config_to_train/ADAM_OCS_v3_fixcap.json

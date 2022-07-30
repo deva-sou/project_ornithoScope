@@ -11,7 +11,7 @@
 
     "data" : {
         "base_path":            "/home/dams1309/raw_data", 
-        "train_csv_file":       "data/inputs/input_train.csv",
+        "train_csv_file":       "data/inputs/input_train_cap300.csv",
         "test_csv_file":        [
                                 "data/input_test_per_tasks/task_2021-03-01_09.csv",
                                 "data/input_test_per_tasks/task_21-01-2021.csv",
