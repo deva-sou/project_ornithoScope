@@ -109,7 +109,8 @@ def _main_(args):
                policy=config['train']['augmentation'],
                mosaic=config['train']['mosaic'],
                saved_pickles_path = config['data']['saved_pickles_path'],
-               custom_callbacks=[])
+               custom_callbacks=[],
+               sampling=config['train']['sampling'])
 
 
 if __name__ == '__main__':
