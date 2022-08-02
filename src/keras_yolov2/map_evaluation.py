@@ -74,14 +74,15 @@ class MapEvaluation(keras.callbacks.Callback):
                         summary_ops_v2.scalar('epoch_' + name, _map, step=epoch)
 
     def evaluate_map(self):
-        predictions,class_metrics,class_res,p_global, r_global,f1_global = self._custom_p_r_f1_calculus()
-        return predictions,class_metrics,class_res,p_global,r_global,f1_global
+        boxes_preds, predictions,class_metrics,class_res,p_global, r_global,f1_global = self._custom_p_r_f1_calculus()
+        return boxes_preds, predictions,class_metrics,class_res,p_global,r_global,f1_global
     
     #get_TP_FP_FN_TN provient de .utils
 
     def _custom_p_r_f1_calculus(self):
         # get labels predictions
         predictions = []
+        boxes_preds = {}
         list_labels = self._label_names
         for i in tqdm(range(self._generator.size())): # generator size = number of tested images
             labels_predicted = {}
@@ -90,6 +91,7 @@ class MapEvaluation(keras.callbacks.Callback):
             pred_boxes = self._yolo.predict(raw_image,
                                             iou_threshold=self._iou_threshold,
                                             score_threshold=self._score_threshold)
+            boxes_preds[img_name] = pred_boxes
             score = [box.score for box in pred_boxes]
             pred_labels = [box.get_label() for box in pred_boxes]
             labels_predicted['img_name'] = img_name
@@ -108,7 +110,7 @@ class MapEvaluation(keras.callbacks.Callback):
         class_metrics = get_precision_recall_from_prediction(predictions, list_labels)
         class_res = results_metrics_per_classes(class_metrics)
         p_global, r_global,f1_global = get_p_r_f1_global(class_metrics)
-        return predictions,class_metrics,class_res,p_global, r_global,f1_global
+        return boxes_preds, predictions,class_metrics,class_res,p_global, r_global,f1_global
 
     
     # def _calc_avg_precisions(self):
