@@ -157,7 +157,7 @@ def _main_(args):
                                     model_name=config['model']['backend'])
             print('Number of valid images: ', len(valid_imgs))
             print('Computing metrics per classes...')
-            predictions,class_metrics,class_res,p_global, r_global,f1_global = valid_eval.evaluate_map()
+            boxes_preds, predictions,class_metrics,class_res,p_global, r_global,f1_global = valid_eval.evaluate_map()
             print('Done.')
             #print('\nTask: ', valid_path)
             task_name = valid_path.split('/')[-1].split('.')[0]
@@ -171,6 +171,7 @@ def _main_(args):
             pickle.dump(class_metrics, open( f"{path}/TP_FP_FN_{config['model']['backend']}_{task_name}.p", "wb" ) )
             pickle.dump(class_res, open( f"{path}/P_R_F1_{config['model']['backend']}_{task_name}.p", "wb" ) )
             pickle.dump(global_results, open( f"{path}/P_R_F1_global_{config['model']['backend']}_{task_name}.p", "wb" ) )  
+            pickle.dump(boxes_preds, open(f"{path}/boxes_{config['model']['backend']}_{task_name}.p", "wb"))
 
 if __name__ == '__main__':
     _args = argparser.parse_args()
