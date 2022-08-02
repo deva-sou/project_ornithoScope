@@ -104,7 +104,8 @@ def _main_(args):
                policy='none',
                mosaic='none',
                saved_pickles_path=None,
-               custom_callbacks=[lr_finder_callback])
+               custom_callbacks=[lr_finder_callback],
+               sampling=False)
     
     lr_finder_callback.plot()
     plt.show()
