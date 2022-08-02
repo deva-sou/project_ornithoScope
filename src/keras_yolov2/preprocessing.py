@@ -311,12 +311,14 @@ def create_mosaic(imgs, all_bbs, labels, output_size, scale_range, filter_scale=
 
 
 class BatchGenerator(Sequence):
-    def __init__(self, images, config, shuffle=True, jitter=True, norm=None, policy_container='none'):
+    def __init__(self, images, config, shuffle=True, sampling=False, jitter=True, norm=None, policy_container='none'):
 
-        self._images = images
+        self._raw_images = images
+
         self._config = config
 
         self._shuffle = shuffle
+        self._sampling = sampling
         self._jitter = jitter
         self._norm = norm
         self._policy_container = policy_container
@@ -326,8 +328,7 @@ class BatchGenerator(Sequence):
 
         self._policy_chosen = self.get_policy_container()
         
-        if shuffle:
-            np.random.shuffle(self._images)
+        self.on_epoch_end()
     
     def __len__(self):
         return int(np.ceil(float(len(self._images)) / self._config['IMG_PER_BATCH']))
@@ -506,8 +507,55 @@ class BatchGenerator(Sequence):
                 break
 
     def on_epoch_end(self):
+        # Shuffle raw images
         if self._shuffle:
-            np.random.shuffle(self._images)
+            np.random.shuffle(self._raw_images)
+        
+        ## Use raw images as image set
+        if not self._sampling:
+            self._images = self._raw_images
+            return
+
+        ## Create image set using sampling
+        self._images = []
+
+        cap = 500
+
+        # Initialize counter
+        counter = {label: 0 for label in self._config['LABELS']}
+
+        # Group images per species
+        image_per_specie = {label: [] for label in self._config['LABELS']}
+        for image in self._raw_images:
+            for box in image['object']:
+                image_per_specie[box['name']].append(image)
+        
+        # Shuffle a bit
+        for image_list in image_per_specie.values():
+            np.random.shuffle(image_list)
+        
+        # Loop to complete each species from the rarest
+        counter_min_key = min(counter, key=counter.get)
+        counter_min = counter[counter_min_key]
+        while counter_min < cap:
+            # Take the first picture and replace it in the queue
+            header_image = image_per_specie[counter_min_key].pop(0)
+            image_per_specie[counter_min_key].append(header_image)
+
+            # Add current image to the image set
+            self._images.append(header_image)
+
+            # Increment counters
+            for box in header_image['object']:
+                counter[box['name']] += 1
+
+            # Update rarest specie
+            counter_min_key = min(counter, key=counter.get)
+            counter_min = counter[counter_min_key]
+        
+        print(counter)
+            
+
 
     def aug_image(self, idx):
         train_instance = self._images[idx]
