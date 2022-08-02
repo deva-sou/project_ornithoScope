@@ -114,7 +114,8 @@ class YOLO(object):
               tb_logdir="./",
               iou_threshold=0.5,
               score_threshold=0.5,
-              custom_callbacks=[]
+              custom_callbacks=[],
+              sampling=True
               ):
 
         self._batch_size = batch_size
@@ -151,6 +152,7 @@ class YOLO(object):
         train_generator = BatchGenerator(train_imgs,
                                          generator_config,
                                          norm=self._feature_extractor.normalize,
+                                         sampling=sampling,
                                          policy_container=policy)
         valid_generator = BatchGenerator(valid_imgs,
                                          generator_config,
