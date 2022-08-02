@@ -3,6 +3,7 @@ import pickle
 import argparse
 import itertools
 import os
+import csv
 
 argparser = argparse.ArgumentParser(
     description='Plot training loss and validation loss hisotiry.')

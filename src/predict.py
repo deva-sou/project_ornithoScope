@@ -15,22 +15,24 @@ from keras_yolov2.utils import draw_boxes, list_images
 from keras_yolov2.tracker import NMS, BoxTracker
 
 
+#POur faire marcher le predict à distance aller avec le terminal dans data orni, aller dans detected pour voir les images predict et les voir avec la commande feh
+
 argparser = argparse.ArgumentParser(
   description='Predict tflite model in real time or with movies / images')
 
 argparser.add_argument(
   '-c',
   '--conf',
-  default='config/config_lab_mobilenetV1.json',
+  default='config/config_to_train/lr_fixé_newcap500.json',
   type=str,
   help='path to configuration file')
 
 argparser.add_argument(
   '-w',
   '--weights',
-  default='',
+  default='data/saved_weights/new_weights/lr_fixé_newcap500_bestLoss.h5',
   type=str,
-  help='path to pretrained weights')
+  help='')
 
 argparser.add_argument(
   '-l',
@@ -50,7 +52,7 @@ argparser.add_argument(
   '-i',
   '--input',
   type=str,
-  help='path to an image or an video (mp4 format)')
+  default='/home/acarlier/code/data_ornithoscope/p0133_bird_data/raw_data/task_05-01-2021')  #à utiliser pour donner un nom au dossier prédit quand on ne prédit pas des fichiers
 
 argparser.add_argument(
   '-o',
