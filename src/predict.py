@@ -228,15 +228,11 @@ def _main_(args):
         if not os.path.exists(detected_images_path):
           os.mkdir(detected_images_path)
 
-      elif output_format == 'csv':
+      elif output_format.startswith('csv'):
         # Create output csv
         detected_csv = os.path.join(image_path, "detected.csv")
         f = open(detected_csv, 'w')
         writer = csv.writer(f)
-
-        # Init file's header
-        header = ['File_path', 'xmin', 'ymin', 'xmax', 'ymax', 'presence']
-        writer.writerow(header)
 
       images = list(list_images(image_path))
       for fname in tqdm(images):
@@ -255,8 +251,22 @@ def _main_(args):
           for box in boxes:
             row = [fname, box.xmin, box.ymin, box.xmax, box.ymax, box.score]
             writer.writerow(row)
+        elif output_format == 'csv_input':
+          image_h, image_w, _ = frame.shape
+          for box in boxes:
+            row = [
+                fname,
+                int(box.xmin * image_w),
+                int(box.ymin * image_h),
+                int(box.xmax * image_w),
+                int(box.ymax * image_h),
+                config['model']['labels'][box.get_label()],
+                image_w,
+                image_h
+              ]
+            writer.writerow(row)
               
-      if output_format == 'csv':
+      if output_format.startswith('csv'):
         f.close()
   
 
