@@ -442,9 +442,19 @@ def results_metrics_per_classes(class_metrics):
 
 # fonction qui print les metriques par classes p,r,f1
 def print_results_metrics_per_classes(class_res, seen_valid):
+    P_list = []
+    R_list = []
+    F1_list = []
     for res in class_res:
         if res['Specie'] in seen_valid:
-            print(f"Specie = {res['Specie']}, Precision = {res['Precision']} - Rappel = {res['Rappel']} - F-score = {res['F-score']} ")
+            P = res['Precision']
+            R = res['Rappel']
+            F1 = res['F-score']
+            P_list.append(P)
+            R_list.append(R)
+            F1_list.append(F1)
+            print(f"Specie = {res['Specie']}, Precision = {P} - Rappel = {R} - F-score = {F1} ")
+    return np.mean(P_list), np.mean(R_list), np.mean(F1_list)
 
 def get_p_r_f1_global(class_metrics):
     # class_metrics = {'TP': 2434, 'FP': 283, 'FN': 80}

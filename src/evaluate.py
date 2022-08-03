@@ -164,8 +164,9 @@ def _main_(args):
             print("For ",task_name)
             print('VALIDATION LABELS: ', seen_valid_labels)
             print('Final results:')
-            print_results_metrics_per_classes(class_res, seen_valid_labels)
-            print(f"Globals: P={p_global} R={r_global} F1={f1_global}\n")
+            mean_P, mean_R, mean_F1 = print_results_metrics_per_classes(class_res, seen_valid_labels)
+            print(f"Globals: P={p_global} R={r_global} F1={f1_global}")
+            print("Means: P=%.3f R=%.3f F1=%.3f\n" % (mean_P, mean_R, mean_F1))
             global_results = [p_global,r_global,f1_global]
             pickle.dump(predictions, open( f"{path}/prediction_TP_FP_FN_{config['model']['backend']}_{task_name}.p", "wb" ) )
             pickle.dump(class_metrics, open( f"{path}/TP_FP_FN_{config['model']['backend']}_{task_name}.p", "wb" ) )
