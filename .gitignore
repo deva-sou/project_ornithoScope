@@ -1,6 +1,8 @@
 venv_ornithoscope
 __pycache__
 *.pyc
+*.h5
+*.p
 .DS_Store
 vids
 comp.txt
