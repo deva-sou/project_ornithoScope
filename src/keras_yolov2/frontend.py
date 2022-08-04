@@ -112,7 +112,8 @@ class YOLO(object):
               tb_logdir="./",
               iou_threshold=0.5,
               score_threshold=0.5,
-              custom_callbacks=[]
+              custom_callbacks=[],
+              sampling=True
               ):
 
         self._batch_size = batch_size
@@ -147,6 +148,7 @@ class YOLO(object):
         train_generator = BatchGenerator(train_imgs,
                                          generator_config,
                                          norm=self._feature_extractor.normalize,
+                                         sampling=sampling,
                                          policy_container=policy)
         valid_generator = BatchGenerator(valid_imgs,
                                          generator_config,
@@ -354,7 +356,7 @@ class YOLO(object):
         if lr_scheduler_config['name'] in ('CosineDecayRestarts', 'CDR'):
             # Parse CosineDecayRestarts arguments
             initial_learning_rate = float(lr_scheduler_config.get('initial_learning_rate', 1e-4))
-            first_decay_steps = int(lr_scheduler_config.get('first_decay_steps', 1000))
+            first_decay_steps = int(lr_scheduler_config.get('first_decay_steps', 1000)) #le scheduler recommence à zéro tous les 1000 steps, donc tous les 2 epochs environ
             t_mul = float(lr_scheduler_config.get('t_mul', 2.0))
             m_mul = float(lr_scheduler_config.get('m_mul', 1.0))
             alpha = float(lr_scheduler_config.get('alpha', 0.0))
@@ -386,7 +388,7 @@ class YOLO(object):
         if lr_scheduler_config['name'] in ('OneCycleScheduler', 'OCS'):
             # Parse OneCycleScheduler arguments
             lr_max = float(lr_scheduler_config.get('lr_max', 1e-3))
-            steps = int(lr_scheduler_config.get('steps', 3600))
+            steps = int(lr_scheduler_config.get('steps', 10000))
             mom_min = float(lr_scheduler_config.get('mom_min', 0.85))
             mom_max = float(lr_scheduler_config.get('mom_max', 0.95))
             phase_1_pct = float(lr_scheduler_config.get('phase_1_pct', 0.3))

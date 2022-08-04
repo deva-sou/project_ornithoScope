@@ -23,14 +23,14 @@ argparser = argparse.ArgumentParser(
 argparser.add_argument(
   '-c',
   '--conf',
-  default='config/config_to_train/lr_fixé_newcap500.json',
+  default='config/new_config/config_all_new_data_Adam_OCS.json',
   type=str,
   help='path to configuration file')
 
 argparser.add_argument(
   '-w',
   '--weights',
-  default='data/saved_weights/new_weights/lr_fixé_newcap500_bestLoss.h5',
+  default='project_ornithoScope/src/data/saved_weights/new_weights/lr_fixé_all_data_Adam_OCS_new_data_bestLoss.h5',
   type=str,
   help='')
 
@@ -57,7 +57,7 @@ argparser.add_argument(
 argparser.add_argument(
   '-o',
   '--output',
-  default='img',
+  default='csv',
   type=str,
   help='Output format, img (default) or csv')
 

@@ -17,7 +17,7 @@ argparser = argparse.ArgumentParser(
 argparser.add_argument(
     '-c',
     '--conf',
-    default='config/config_to_train/lr_fixé_newcap.json', #à changer selon les config
+    default='config/new_config/config_all_new_data_Adam_OCS.json', #à changer selon les config
     help='path to configuration file')
 
 argparser.add_argument(
@@ -30,7 +30,7 @@ argparser.add_argument(
 argparser.add_argument(
     '-w',
     '--weights',
-    default='data/saved_weights/new_weights/lr_fixé_newcap300_bestLoss.h5', #à changer selon les config
+    default='data/saved_weights/new_weights/lr_fixé_all_data_Adam_OCS_new_data_cap200_v2_bestLoss.h5', #à changer selon les config
     help='path to pretrained weights')
 
 argparser.add_argument(

@@ -119,7 +119,8 @@ def _main_(args):
                iou_threshold=config['valid']['iou_threshold'],
                score_threshold=config['valid']['score_threshold'],
                policy=config['train']['augmentation'],
-               saved_pickles_path = config['data']['saved_pickles_path'])
+               saved_pickles_path = config['data']['saved_pickles_path'],
+               sampling=config['train']['sampling'])
 
 
 if __name__ == '__main__':

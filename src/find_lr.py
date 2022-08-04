@@ -18,7 +18,7 @@ argparser = argparse.ArgumentParser(
 argparser.add_argument(
     '-c',
     '--conf',
-    default='config/config_to_train/Adam_CDR_batchsize16.json',
+    default='config/new_config/config_iNat_train_Adam_OCS.json',
     help='path to configuration file')
 
 
@@ -103,7 +103,8 @@ def _main_(args):
                score_threshold=config['valid']['score_threshold'],
                policy='none',
                saved_pickles_path=None,
-               custom_callbacks=[lr_finder_callback])
+               custom_callbacks=[lr_finder_callback],
+               sampling=False)
     
     lr_finder_callback.plot()
     writepathpng = 'plot_lucien/lr_finder_%d.png'
