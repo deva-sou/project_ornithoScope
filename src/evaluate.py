@@ -43,23 +43,10 @@ argparser.add_argument(
   help='Path to tflite model')
 
 
-def _print_(*object):
-    global log_file
-    log_file.write(str(object) + '\n')
-    print(object)
-
-
 def _main_(args):
-    global log_file
-    
     config_path = args.conf
     weights_path = args.weights
     lite_path = args.lite
-
-    log_path = 'logs/evaluate/' + config_path
-    if not os.path.exists('/'.join(log_path.split('/')[:-1])):
-        os.makedirs('/'.join(log_path.split('/')[:-1]))
-    log_file = open(log_path, 'w')
     
     enable_memory_growth()
 
@@ -87,15 +74,15 @@ def _main_(args):
     if len(config['model']['labels']) > 0:
         overlap_labels = set(config['model']['labels']).intersection(set(train_labels.keys()))
 
-        # _print_('Seen labels:\t', train_labels)
-        # _print_('Given labels:\t', config['model']['labels'])
-        # _print_('Overlap labels:\t', overlap_labels)           
+        # print('Seen labels:\t', train_labels)
+        # print('Given labels:\t', config['model']['labels'])
+        # print('Overlap labels:\t', overlap_labels)           
 
         if len(overlap_labels) < len(config['model']['labels']):
-            _print_('Some labels have no annotations! Please revise the list of labels in the config.json file!')
+            print('Some labels have no annotations! Please revise the list of labels in the config.json file!')
             return
     else:
-        _print_('No labels are provided. Evaluate on all seen labels.')
+        print('No labels are provided. Evaluate on all seen labels.')
         config['model']['labels'] = train_labels.keys()
         with open("labels.json", 'w') as outfile:
             json.dump({"labels": list(train_labels.keys())}, outfile)
@@ -115,10 +102,10 @@ def _main_(args):
     #########################################
 
     if weights_path != '':
-        _print_("Loading pre-trained weights in", weights_path)
+        print("Loading pre-trained weights in", weights_path)
         yolo.load_weights(weights_path)
     elif os.path.exists(config['train']['pretrained_weights']):
-        _print_("Loading pre-trained weights in", config['train']['pretrained_weights'])
+        print("Loading pre-trained weights in", config['train']['pretrained_weights'])
         yolo.load_weights(config['train']['pretrained_weights'])
     else:
         raise Exception("No pretrained weights found.")
@@ -134,19 +121,19 @@ def _main_(args):
 
      # parse annotations of the validation set, if any.
     validation_paths = config['data']['test_csv_file']
-    _print_(validation_paths)
+    print(validation_paths)
     directory_name = f"{config['model']['backend']}_{datetime.today().strftime('%Y-%m-%d-%H:%M:%S')}"
-    _print_("Directory name for metrics: ", directory_name)
+    print("Directory name for metrics: ", directory_name)
     parent_dir = config['data']['saved_pickles_path']
     path = os.path.join(parent_dir, directory_name)
     os.mkdir(path)
     for valid_path in validation_paths:
         if os.path.exists(valid_path):
-            _print_(f"\n \nParsing {valid_path.split('/')[-1]}")
+            print(f"\n \nParsing {valid_path.split('/')[-1]}")
             valid_imgs, seen_valid_labels = parse_annotation_csv(valid_path,
                                                             config['model']['labels'],
                                                             config['data']['base_path'])
-            #_print_("computing mAP for iou threshold = {}".format(args.iou))
+            #print("computing mAP for iou threshold = {}".format(args.iou))
             generator_config = {
                         'IMAGE_H': yolo._input_size[0],
                         'IMAGE_W': yolo._input_size[1],
@@ -168,18 +155,18 @@ def _main_(args):
                                     iou_threshold=args.iou,
                                     label_names=config['model']['labels'],
                                     model_name=config['model']['backend'])
-            _print_('Number of valid images: ', len(valid_imgs))
-            _print_('Computing metrics per classes...')
+            print('Number of valid images: ', len(valid_imgs))
+            print('Computing metrics per classes...')
             boxes_preds, predictions,class_metrics,class_res,p_global, r_global,f1_global = valid_eval.evaluate_map()
-            _print_('Done.')
-            #_print_('\nTask: ', valid_path)
+            print('Done.')
+            #print('\nTask: ', valid_path)
             task_name = valid_path.split('/')[-1].split('.')[0]
-            _print_("For ",task_name)
-            _print_('VALIDATION LABELS: ', seen_valid_labels)
-            _print_('Final results:')
+            print("For ",task_name)
+            print('VALIDATION LABELS: ', seen_valid_labels)
+            print('Final results:')
             mean_P, mean_R, mean_F1 = print_results_metrics_per_classes(class_res, seen_valid_labels)
-            _print_(f"Globals: P={p_global} R={r_global} F1={f1_global}")
-            _print_("Means: P=%.3f R=%.3f F1=%.3f\n" % (mean_P, mean_R, mean_F1))
+            print(f"Globals: P={p_global} R={r_global} F1={f1_global}")
+            print("Means: P=%.3f R=%.3f F1=%.3f\n" % (mean_P, mean_R, mean_F1))
             global_results = [p_global,r_global,f1_global]
             pickle.dump(predictions, open( f"{path}/prediction_TP_FP_FN_{config['model']['backend']}_{task_name}.p", "wb" ) )
             pickle.dump(class_metrics, open( f"{path}/TP_FP_FN_{config['model']['backend']}_{task_name}.p", "wb" ) )
