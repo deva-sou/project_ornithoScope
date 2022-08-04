@@ -1,27 +1,27 @@
 import numpy as np
 
 
-def remove_duplicates(input_list: list):
-    """
-    Create a list with unique values based on the input list.
-    """
-    dic = dict.fromkeys(input_list)
-    output_list = list(dic.keys())
-    return output_list
-
-
 # Parameters
-input_path = 'data/inputs/input_all.csv'
+input_path = 'data/inputs/input_train.csv'
 separator = ','
 cap = 20
 max_ratio = 0.1
 
 # Create ouput file name
 decomposed_path = input_path.split('.')
-decomposed_path[-2] += '_validset'
-output_path = '.'.join(decomposed_path)
+output_train_path = '.'.join(
+        decomposed_path[:-2] +
+        [decomposed_path[-2] + '_trainset'] +
+        decomposed_path[-1:]
+    )
+output_valid_path = '.'.join(
+        decomposed_path[:-2] +
+        [decomposed_path[-2] + '_validset'] +
+        decomposed_path[-1:]
+    )
 
-print('\nOutput file: %s\n' % output_path)
+print('\nTrain output file: %s' % output_train_path)
+print('Validation output file: %s\n' % output_valid_path)
 
 # Open input file and extract boxes values
 with open(input_path, 'r') as file_buffer:
@@ -42,62 +42,57 @@ for box in boxes:
     else:
         initial_counter[species] = 1
 
-# Initialize some usefull lists
-available_species = list(initial_counter.keys())
-max_image = {species: min(cap, round(max_ratio * initial_counter[species])) for species in available_species}
-all_images = [box[0] for box in boxes]
-available_images = remove_duplicates(all_images)
-final_counter = {species: 0 for species in available_species}
+# Initialise usefull dicts
+max_counter = {species: min(cap, round(max_ratio * initial_counter[species])) for species in initial_counter}
+final_counter = {species: 0 for species in initial_counter}
 
-# Create output file
-output_file = open(output_path, 'w')
+# Create output files
+output_train = open(output_train_path, 'w')
+output_valid = open(output_valid_path, 'w')
 
 # Main loop
-while len(available_species) > 0:
-    # Select an image
+while len(boxes) > 0:
+    # Get current box and image
+    current_box = boxes[0]
+    current_image = current_box[0]
+
+    # Get current image boxes
+    current_boxes = []
     for box in boxes:
-        if box[5] in available_species and box[0] in available_images:
-            chosen_image = box[0]
-            break
+        if box[0] == current_image:
+            current_boxes.append(box)
     
-    # Remove the chosen image from available images
-    available_images.remove(chosen_image)
+    # Remove current image boxes from the global boxes list
+    for box in current_boxes:
+        boxes.remove(box)
     
-    # List all boxes on the chosen image
-    chosen_boxes = []
-    for box in boxes:
-        if box[0] == chosen_image:
-            chosen_boxes.append(box)
-    
-    # Count every species on the chosen image
-    chosen_counter = {}
-    for box in chosen_boxes:
+    # Count current image boxes per species
+    current_counter = {}
+    for box in current_boxes:
         species = box[5]
-        if species in chosen_counter:
-            chosen_counter[species] += 1
+        if species in current_counter:
+            current_counter[species] += 1
         else:
-            chosen_counter[species] = 1
+            current_counter[species] = 1
     
-    # The image is valid only if all species don't break counters
+    # `valid` is `True` if the image does not break max count limit
     valid = True
-    for species in chosen_counter:
-        if chosen_counter[species] + final_counter[species] > max_image[species]:
+    for species in current_counter:
+        if current_counter[species] + final_counter[species] > max_counter[species]:
             valid = False
             break
     
-    # If the image is not valid, take an other one
-    if not valid:
-        continue
+    if valid:
+        # We will write these boxes in the validation file 
+        output_file = output_valid
 
-    # Increment final counter
-    for species in chosen_counter:
-        final_counter[species] += chosen_counter[species]
+        # Increment counters
+        for species in current_counter:
+            final_counter[species] += current_counter[species]
+    else:
+        # We will write in the train file
+        output_file = output_train
     
-    # Write image and its boxes in the output file
-    for box in chosen_boxes:
+    # Write boxes in the selected output file
+    for box in current_boxes:
         output_file.write(separator.join(box) + '\n')
-    
-    # Remove species that are full
-    for species in chosen_counter:
-        if final_counter[species] >= max_image[species]:
-            available_species.remove(species)
