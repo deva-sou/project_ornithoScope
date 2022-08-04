@@ -1,7 +1,7 @@
 import numpy as np
 
 # Parameters
-input_path = 'data/inputs/input_train.csv'
+input_path = 'data/inputs/input_train_trainset.csv'
 separator = ','
 cap = 300
 
