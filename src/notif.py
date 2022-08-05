@@ -16,15 +16,19 @@ argparser.add_argument(
 def _main_(args):
     config_path = args.conf
 
+    # Load config file as a dict
     with open(config_path) as config_buffer:    
         config = json.loads(config_buffer.read())
 
+    # Get evaluate outfile lines
     lines = [line for line in open(config_path + '.log', 'r').readlines()]
     
+    # Get history output image
     root, ext = os.path.splitext(config['train']['saved_weights_name'])
     saved_pickle_path = config['data']['saved_pickles_path']
     pickle_path = f'{saved_pickle_path}/history/history_{root}_bestLoss{ext}.p'
 
+    # Send message with the evaluate results and history image
     webhook = Webhook.from_url(
             "https://discord.com/api/webhooks/1000055986528198767/sZhup-kBr9wqVxIN4vDb5sRUJ9D-7mXaSeZxWssmprWiMqeC3KbmeNGiDoIuyZU4lgWA",
             adapter=RequestsWebhookAdapter())
