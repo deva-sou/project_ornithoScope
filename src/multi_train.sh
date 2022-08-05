@@ -26,7 +26,7 @@ do
     do
         echo
         echo "Starting a new training session?"
-        { # Try to start tmux 0  ; python3 train.py -c $config_path
+        { # Try to start tmux 0
             tmux new-session -s "DL_TRAIN_0" -d "source ../venv_ornithoscope/bin/activate ; export CUDA_VISIBLE_DEVICES=0 ; python3 train.py -c $config_path ; python3 evaluate.py -c $config_path > $config_path'.log'" &&
             waiting=false &&
             tmux_used=0 &&
