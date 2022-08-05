@@ -33,7 +33,8 @@ do
                     python3 train.py -c $config_path ;\
                     python3 evaluate.py -c $config_path > $config_path'.log' ;\
                     python3 history.py -c $config_path ;\
-                    python3 notif.py -c $config_path\
+                    python3 notif.py -c $config_path ;\
+                    rm $config_path'.log'\
             " &&
             waiting=false &&
             tmux_used=0 &&
@@ -45,7 +46,8 @@ do
                     python3 train.py -c $config_path ;\
                     python3 evaluate.py -c $config_path > $config_path'.log' ;\
                     python3 history.py -c $config_path ;\
-                    python3 notif.py -c $config_path\
+                    python3 notif.py -c $config_path ;\
+                    rm $config_path'.log'\
             " &&
             waiting=false &&
             tmux_used=1 &&
