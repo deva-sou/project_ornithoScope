@@ -328,6 +328,11 @@ class BatchGenerator(Sequence):
 
         self._policy_chosen = self.get_policy_container()
         
+        # Group images per species
+        self._image_per_specie = {label: [] for label in self._config['LABELS']}
+        for image in self._raw_images:
+            for box in image['object']:
+                self._image_per_specie[box['name']].append(image)
         self.on_epoch_end()
     
     def __len__(self):
@@ -523,24 +528,14 @@ class BatchGenerator(Sequence):
 
         # Initialize counter
         counter = {label: 0 for label in self._config['LABELS']}
-
-        # Group images per species
-        image_per_specie = {label: [] for label in self._config['LABELS']}
-        for image in self._raw_images:
-            for box in image['object']:
-                image_per_specie[box['name']].append(image)
-        
-        # Shuffle a bit
-        for image_list in image_per_specie.values():
-            np.random.shuffle(image_list)
         
         # Loop to complete each species from the rarest
         counter_min_key = min(counter, key=counter.get)
         counter_min = counter[counter_min_key]
         while counter_min < cap:
             # Take the first picture and replace it in the queue
-            header_image = image_per_specie[counter_min_key].pop(0)
-            image_per_specie[counter_min_key].append(header_image)
+            header_image = self._image_per_specie[counter_min_key].pop(0)
+            self._image_per_specie[counter_min_key].append(header_image)
 
             # Add current image to the image set
             self._images.append(header_image)
