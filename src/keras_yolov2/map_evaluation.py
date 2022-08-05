@@ -74,8 +74,8 @@ class MapEvaluation(keras.callbacks.Callback):
                         summary_ops_v2.scalar('epoch_' + name, _map, step=epoch)
 
     def evaluate_map(self):
-        boxes_preds, predictions,class_metrics,class_res,p_global, r_global,f1_global = self._custom_p_r_f1_calculus()
-        return boxes_preds, predictions,class_metrics,class_res,p_global,r_global,f1_global
+        boxes_preds, bad_boxes_preds, predictions,class_metrics,class_res,p_global, r_global,f1_global = self._custom_p_r_f1_calculus()
+        return boxes_preds, bad_boxes_preds, predictions,class_metrics,class_res,p_global,r_global,f1_global
     
     #get_TP_FP_FN_TN provient de .utils
 
@@ -83,6 +83,7 @@ class MapEvaluation(keras.callbacks.Callback):
         # get labels predictions
         predictions = []
         boxes_preds = {}
+        bad_boxes_preds = {}
         list_labels = self._label_names
         for i in tqdm(range(self._generator.size())): # generator size = number of tested images
             labels_predicted = {}
@@ -106,11 +107,13 @@ class MapEvaluation(keras.callbacks.Callback):
                 labels_predicted['true_id'] = list(annotation_i[:,4])
                 labels_predicted['true_name'] = from_id_to_label_name(list_labels,list(annotation_i[:,4]))
             get_TP_FP_FN_TN(labels_predicted)
+            if (len(labels_predicted['FP'] + labels_predicted['FN']) > 0):
+                bad_boxes_preds[img_name] = pred_boxes
             predictions.append(labels_predicted)
         class_metrics = get_precision_recall_from_prediction(predictions, list_labels)
         class_res = results_metrics_per_classes(class_metrics)
         p_global, r_global,f1_global = get_p_r_f1_global(class_metrics)
-        return boxes_preds, predictions,class_metrics,class_res,p_global, r_global,f1_global
+        return boxes_preds, bad_boxes_preds, predictions,class_metrics,class_res,p_global, r_global,f1_global
 
     
     # def _calc_avg_precisions(self):
