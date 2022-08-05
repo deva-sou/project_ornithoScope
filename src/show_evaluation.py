@@ -6,7 +6,7 @@ import numpy as np
 
 from keras_yolov2.utils import draw_boxes
 
-pickle_path = "data/pickles/MobileNet_2022-08-05-09:02:01/bad_boxes_MobileNet_input_test.p"
+pickle_path = "data/pickles/MobileNet_2022-08-05-10:04:54/bad_boxes_MobileNet_input_test.p"
 
 with open(pickle_path, 'rb') as fp:
     img_boxes = pickle.load(fp)

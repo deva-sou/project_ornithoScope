@@ -126,7 +126,14 @@ def _main_(args):
     print("Directory name for metrics: ", directory_name)
     parent_dir = config['data']['saved_pickles_path']
     path = os.path.join(parent_dir, directory_name)
-    os.mkdir(path)
+    count = 0
+    while True:
+        try:
+            os.mkdir(path + f'_{count}')
+            break
+        except:
+            count += 1
+    path += f'_{count}'
     for valid_path in validation_paths:
         if os.path.exists(valid_path):
             print(f"\n \nParsing {valid_path.split('/')[-1]}")

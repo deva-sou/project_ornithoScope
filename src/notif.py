@@ -1,5 +1,39 @@
-import sys
-from discord import Webhook, RequestsWebhookAdapter
+import argparse
+import os
+import json
 
-webhook = Webhook.from_url("https://discord.com/api/webhooks/1000055986528198767/sZhup-kBr9wqVxIN4vDb5sRUJ9D-7mXaSeZxWssmprWiMqeC3KbmeNGiDoIuyZU4lgWA", adapter=RequestsWebhookAdapter())
-webhook.send(' '.join(sys.argv[1:]))
+from discord import Webhook, RequestsWebhookAdapter, File
+
+argparser = argparse.ArgumentParser(
+    description='Plot training loss and validation loss hisotiry.')
+
+argparser.add_argument(
+    '-c',
+    '--conf',
+    default='config/pre_config/ADAM_OCS_v0_full_sampling.json',
+    help='Path to config file.')
+
+def _main_(args):
+    config_path = args.conf
+
+    with open(config_path) as config_buffer:    
+        config = json.loads(config_buffer.read())
+
+    lines = [line for line in open(config_path + '.log', 'r').readlines()]
+    
+    root, ext = os.path.splitext(config['train']['saved_weights_name'])
+    saved_pickle_path = config['data']['saved_pickles_path']
+    pickle_path = f'{saved_pickle_path}/history/history_{root}_bestLoss{ext}.p'
+
+    webhook = Webhook.from_url(
+            "https://discord.com/api/webhooks/1000055986528198767/sZhup-kBr9wqVxIN4vDb5sRUJ9D-7mXaSeZxWssmprWiMqeC3KbmeNGiDoIuyZU4lgWA",
+            adapter=RequestsWebhookAdapter())
+    webhook.send(config_path)
+    webhook.send(
+        '```' + ''.join(lines[-17:]) + '```',
+        file=File(pickle_path + '.jpg'))
+
+
+if __name__ == '__main__':
+    _args = argparser.parse_args()
+    _main_(_args)
