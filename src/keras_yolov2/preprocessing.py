@@ -519,7 +519,7 @@ class BatchGenerator(Sequence):
         ## Create image set using sampling
         self._images = []
 
-        cap = 500
+        cap = 200
 
         # Initialize counter
         counter = {label: 0 for label in self._config['LABELS']}
