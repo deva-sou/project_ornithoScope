@@ -157,7 +157,8 @@ def _main_(args):
             valid_generator = BatchGenerator(valid_imgs, 
                                                 generator_config,
                                                 norm=yolo._feature_extractor.normalize,
-                                                jitter=False)
+                                                jitter=False,
+                                                shuffle=False)
             valid_eval = MapEvaluation(yolo, valid_generator,
                                     iou_threshold=args.iou,
                                     label_names=config['model']['labels'],
