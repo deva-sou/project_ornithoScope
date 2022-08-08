@@ -38,6 +38,9 @@ class BoundBox:
         #if self.score == -1: -> Bug sur le nombre de bbox prédites
         self.score = self.classes[self.get_label()]*self.c
         return self.score
+    
+    def copy(self):
+        return BoundBox(self.xmin, self.ymin, self.xmax, self.ymax, self.c, self.classes.copy())
 
     def __repr__(self):
         """
