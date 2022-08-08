@@ -303,9 +303,9 @@ def create_mosaic(imgs, all_bbs, labels, output_size, scale_range, filter_scale=
                 bbox['ymax'] += divid_point_y
                 new_bboxs.append(bbox)
 
-    # if 0 < filter_scale:
-    #     new_bboxs = [anno for anno in new_bboxs if
-    #                 filter_scale < (anno[3] - anno[1]) and filter_scale < (anno[4] - anno[2])]
+    if 0.0 < filter_scale:
+        new_bboxs = [bbox for bbox in new_bboxs if
+                    filter_scale < (bbox['xmax'] - bbox['xmin']) and filter_scale < (bbox['ymax'] - bbox['ymin'])]
     
     return output_image, new_bboxs
 
