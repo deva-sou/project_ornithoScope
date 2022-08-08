@@ -44,7 +44,7 @@ def _main_(args):
     
     # Modify figure params
     xmin, xmax, ymin, ymax = plt.axis()
-    plt.axis((5, xmax, min(loss), val_loss[5]))
+    plt.axis((5, xmax, min(loss + val_loss), val_loss[5]))
     plt.legend()
 
     # Save figure
