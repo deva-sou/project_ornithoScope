@@ -23,13 +23,6 @@ argparser.add_argument(
     help='path to configuration file')
 
 argparser.add_argument(
-    '-i',
-    '--iou',
-    default=0.5,
-    help='IOU threshold',
-    type=float)
-
-argparser.add_argument(
     '-w',
     '--weights',
     default='',
@@ -160,7 +153,8 @@ def _main_(args):
                                                 jitter=False,
                                                 shuffle=False)
             valid_eval = MapEvaluation(yolo, valid_generator,
-                                    iou_threshold=args.iou,
+                                    iou_threshold=config['valid']['iou_threshold'],
+                                    score_threshold=config['valid']['score_threshold'],
                                     label_names=config['model']['labels'],
                                     model_name=config['model']['backend'])
             print('Number of valid images: ', len(valid_imgs))
