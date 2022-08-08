@@ -249,7 +249,36 @@ class CustomPolicy(policies.PolicyContainer):
         return (-np.cos(np.pi * x) + 1) / 2
 
 
-def create_mosaic(imgs, all_bbs, labels, output_size, scale_range, filter_scale=0.0):
+def crop(img, bboxs):
+    height, width = img.shape[:-1]
+
+    crop_width = 0.5
+    crop_height = 0.5
+
+    crop_shift_x = np.random.random() / 2
+    crop_shift_y = np.random.random() / 2
+
+    # Compute start and end limits
+    x_start = width * crop_shift_x
+    x_end = x_start + width * crop_width
+    y_start = height * crop_shift_y
+    y_end = y_start + height * crop_height
+    x_start, x_end, y_start, y_end = int(x_start), int(x_end), int(y_start), int(y_end)
+
+    # Crop the image
+    img = img[y_start:y_end, x_start:x_end, :]
+
+    # Crop bouding boxes
+    for bbox in bboxs:
+        bbox['xmin'] = max(bbox['xmin'], x_start) - x_start
+        bbox['ymin'] = max(bbox['ymin'], y_start) - y_start
+        bbox['xmax'] = min(bbox['xmax'], x_end) - x_start
+        bbox['ymax'] = min(bbox['ymax'], y_end) - y_start
+    
+    return img, bboxs
+
+
+def create_mosaic(imgs, all_bbs, output_size, scale_range, crop_images=False, filter_scale=1.0):
     output_image = np.zeros(output_size, dtype=np.uint8)
     scale_x = scale_range[0] + np.random.random() * (scale_range[1] - scale_range[0])
     scale_y = scale_range[0] + np.random.random() * (scale_range[1] - scale_range[0])
@@ -258,6 +287,9 @@ def create_mosaic(imgs, all_bbs, labels, output_size, scale_range, filter_scale=
 
     new_bboxs = []
     for i, (img, bboxs) in enumerate(zip(imgs, all_bbs)):
+
+        if crop_images:
+            img, bboxs = crop(img, bboxs)
         
         if i == 0:  # top-left
             initial_size = img.shape[-2::-1]
@@ -303,10 +335,10 @@ def create_mosaic(imgs, all_bbs, labels, output_size, scale_range, filter_scale=
                 bbox['ymax'] += divid_point_y
                 new_bboxs.append(bbox)
 
-    if 0.0 < filter_scale:
-        new_bboxs = [bbox for bbox in new_bboxs if
-                    filter_scale < (bbox['xmax'] - bbox['xmin']) and filter_scale < (bbox['ymax'] - bbox['ymin'])]
-    
+    # Remove the box if it is too small
+    new_bboxs = [bbox for bbox in new_bboxs
+            if filter_scale < (bbox['xmax'] - bbox['xmin']) and filter_scale < (bbox['ymax'] - bbox['ymin'])]
+
     return output_image, new_bboxs
 
 
@@ -420,15 +452,18 @@ class BatchGenerator(Sequence):
                     img, bbs = self.aug_image(l_bound + 4 * instance_count + i)
                     imgs.append(img)
                     all_bbs.append(bbs)
+                
+                # Crop images
+                crop_images = self._config['MOSAIC'].find('crop') >= 0
 
                 # Merge images to create mosaic
                 img, all_bbs = create_mosaic(
                         imgs=imgs,
                         all_bbs=all_bbs,
-                        labels=self._config['LABELS'],
                         output_size=(self._config['IMAGE_W'], self._config['IMAGE_H'], 3),
-                        scale_range=(0.3, 0.7),
-                        filter_scale=0.0
+                        scale_range=(0.4, 0.6),
+                        crop_images=crop_images,
+                        filter_scale=1.0
                     )
                 
 
