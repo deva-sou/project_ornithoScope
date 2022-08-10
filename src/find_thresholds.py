@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from keras_yolov2.preprocessing import parse_annotation_csv
 from keras_yolov2.utils import (bbox_iou,
                                 from_id_to_label_name,
-                                get_TP_FP_FN_TN,
+                                compute_class_TP_FP_FN,
                                 get_p_r_f1_global,
                                 get_precision_recall_from_prediction,
                                 results_metrics_per_classes)
@@ -114,7 +114,7 @@ for iou_threshold in ious:
                 labels_predicted['true_name'] = from_id_to_label_name(list_labels, list(annotation_k[:,4]))
             
             # Compute TP FP FN TN
-            get_TP_FP_FN_TN(labels_predicted)
+            compute_class_TP_FP_FN(labels_predicted)
             predictions.append(labels_predicted)
 
         # Compute global results
