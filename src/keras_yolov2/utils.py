@@ -363,7 +363,45 @@ def from_id_to_label_name(list_label, list_label_id):
     #print('to', list_ret)
     return list_ret
 
-def get_TP_FP_FN_TN(dict_pred):
+
+def compute_bbox_TP_FP_FN(pred_boxes, true_boxes, list_of_classes):
+    # Store TP, FP and FN labels
+    predictions = {'TP': [], 'FP': [], 'FN': []}
+
+    # Store nicely predicted box ids
+    good_boxes = []
+
+    # Loop on every predicted boxes
+    for k, box_pred in enumerate(pred_boxes):
+        pred_label = box_pred.get_label()
+
+        # Get true box ids with the same label
+        true_indexs = [i for i in range(len(true_boxes)) if true_boxes[i].get_label() == pred_label]
+
+        # Sort them by IoU
+        true_indexs = sorted(true_indexs, key=lambda i : bbox_iou(true_boxes[i], box_pred), reverse=True)
+
+        # The predicted box does not correspond to any true box (using class only)
+        if len(true_indexs) == 0:
+            continue
+        
+        # If the IoU is correct, it is a TP
+        if bbox_iou(true_boxes[true_indexs[0]], box_pred) > 0.5:
+            predictions['TP'].append(list_of_classes[pred_label])
+            true_boxes.pop(true_indexs[0])
+            good_boxes.append(k)
+            continue
+    
+    # Remaining predicted boxes are FP
+    predictions['FP'] = [list_of_classes[box_pred.get_label()] for k, box_pred in enumerate(pred_boxes) if not k in good_boxes]
+
+    # Remaining ture boxes are FN
+    predictions['FN'] = [list_of_classes[box_true.get_label()] for box_true in true_boxes]
+
+    return predictions
+
+
+def compute_class_TP_FP_FN(dict_pred):
     true_labels = dict_pred['true_name']
     pred_labels = dict_pred['predictions_name']
     TP = []
@@ -395,14 +433,14 @@ def get_precision_recall_from_prediction(list_of_results, list_of_classes):
         class_metrics.append({'Specie':classes,'TP':0, 'FP':0, 'FN':0})
     
     for i in range(len(list_of_results)):
-        pred_labels = list_of_results[i]['predictions_name']
-        #print('pred', pred_labels)
-        true_labels = list_of_results[i]['true_name']
-        #print('true', true_labels)
+        # pred_labels = list_of_results[i]['predictions_name']
+        # print('pred', pred_labels)
+        # true_labels = list_of_results[i]['true_name']
+        # print('true', true_labels)
         TP = list_of_results[i]['TP']
         FP = list_of_results[i]['FP']
         FN = list_of_results[i]['FN']
-        #print(f'TP {TP}, FN {FN}, FP {FP}')
+        # print(f'TP {TP}, FN {FN}, FP {FP}')
         
         for lab in TP:
             class_metrics[list_of_classes.index(lab)]['TP'] += 1
@@ -457,7 +495,7 @@ def print_results_metrics_per_classes(class_res, seen_valid):
             R_list.append(R)
             F1_list.append(F1)
             print(f"Specie = {res['Specie']}, Precision = {P} - Rappel = {R} - F-score = {F1} ")
-    return np.mean(P_list), np.mean(R_list), np.mean(F1_list)
+    return round(np.mean(P_list), 3), round(np.mean(R_list), 3), round(np.mean(F1_list), 3)
 
 def get_p_r_f1_global(class_metrics):
     # class_metrics = {'TP': 2434, 'FP': 283, 'FN': 80}
