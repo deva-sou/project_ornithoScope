@@ -279,7 +279,10 @@ def crop(img, bboxs):
 
 
 def create_mosaic(imgs, all_bbs, output_size, scale_range, crop_images=False, filter_scale=1.0):
+    # Create the output image
     output_image = np.zeros(output_size, dtype=np.uint8)
+
+    # Create random borders
     scale_x = scale_range[0] + np.random.random() * (scale_range[1] - scale_range[0])
     scale_y = scale_range[0] + np.random.random() * (scale_range[1] - scale_range[0])
     divid_point_x = int(scale_x * output_size[1])
@@ -288,6 +291,7 @@ def create_mosaic(imgs, all_bbs, output_size, scale_range, crop_images=False, fi
     new_bboxs = []
     for i, (img, bboxs) in enumerate(zip(imgs, all_bbs)):
 
+        # Create mosaic with croped images
         if crop_images:
             img, bboxs = crop(img, bboxs)
         
@@ -346,9 +350,7 @@ class BatchGenerator(Sequence):
     def __init__(self, images, config, shuffle=True, sampling=False, jitter=True, norm=None, policy_container='none'):
 
         self._raw_images = images
-
         self._config = config
-
         self._shuffle = shuffle
         self._sampling = sampling
         self._jitter = jitter
@@ -374,12 +376,26 @@ class BatchGenerator(Sequence):
         return len(self._images)
 
     def load_annotation(self, i):
-        annots = []
+        """
+        Load the i-th annotation.
+        """
+        # Extract image width and height
+        width = float(self._images[i]['width'])
+        height = float(self._images[i]['height'])
 
+        annots = []
+        # List all annotations
         for obj in self._images[i]['object']:
-            annot = [obj['xmin'], obj['ymin'], obj['xmax'], obj['ymax'], self._config['LABELS'].index(obj['name'])]
+            annot = [
+                    obj['xmin'] / width,
+                    obj['ymin'] / height,
+                    obj['xmax'] / width,
+                    obj['ymax'] / height,
+                    self._config['LABELS'].index(obj['name'])
+                ]
             annots += [annot]
 
+        # In case of empty image, create an empty annotation list
         if len(annots) == 0:
             annots = [[]]
 
