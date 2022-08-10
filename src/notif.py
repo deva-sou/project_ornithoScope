@@ -13,6 +13,8 @@ argparser.add_argument(
     default='config/pre_config/ADAM_OCS_v0_full_sampling.json',
     help='Path to config file.')
 
+CODE_QUOTES = '```'
+
 def _main_(args):
     config_path = args.conf
 
@@ -22,6 +24,8 @@ def _main_(args):
 
     # Get evaluate outfile lines
     lines = [line for line in open(config_path + '.log', 'r').readlines()]
+    result_line = lines.index('Final results:\n')
+    lines = lines[result_line:]
     
     # Get history output image
     root, ext = os.path.splitext(config['train']['saved_weights_name'])
@@ -33,9 +37,7 @@ def _main_(args):
             "https://discord.com/api/webhooks/1000055986528198767/sZhup-kBr9wqVxIN4vDb5sRUJ9D-7mXaSeZxWssmprWiMqeC3KbmeNGiDoIuyZU4lgWA",
             adapter=RequestsWebhookAdapter())
     webhook.send(config_path)
-    webhook.send(
-        '```' + ''.join(lines[-17:]) + '```',
-        file=File(pickle_path + '.jpg'))
+    webhook.send(CODE_QUOTES + ''.join(lines) + CODE_QUOTES, file=File(pickle_path + '.jpg'))
 
 
 if __name__ == '__main__':
