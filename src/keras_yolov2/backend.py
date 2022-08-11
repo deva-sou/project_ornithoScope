@@ -1,10 +1,10 @@
 import tensorflow as tf
 from tensorflow.keras.models import Model
-from tensorflow.keras.applications import InceptionV3
+from tensorflow.keras.applications.efficientnet_v2 import EfficientNetV2B0
 from tensorflow.keras.applications.mobilenet import MobileNet
-from tensorflow.keras.applications import MobileNetV2
 from tensorflow.keras.applications.resnet50 import ResNet50
 from tensorflow.keras.applications.vgg16 import VGG16
+from tensorflow.keras.applications import InceptionV3, EfficientNetB0, MobileNetV2, MobileNetV3Small, MobileNetV3Large
 from tensorflow.keras.layers import Activation, Conv2D, Input, MaxPooling2D, BatchNormalization, Lambda, LeakyReLU, \
     concatenate
 
@@ -290,6 +290,62 @@ class MobileNetV2Feature(BaseFeatureExtractor):
 
         return image
 
+class MobileNetV3SmallFeature(BaseFeatureExtractor):
+    """docstring for ClassName"""
+
+    def __init__(self, input_size, freeze, alpha=1.0):
+        input_image = Input(shape=input_size)
+
+        mobilenet3small = MobileNetV3Small(input_shape=input_size, include_top=False, alpha=alpha)
+        # if input_size[2] == 3:
+        #     try:
+        #         print("Loading pretrained weights: " + MOBILENET2_BACKEND_PATH)
+        #         mobilenet3small.load_weights(MOBILENET2_BACKEND_PATH)
+        #     except:
+        #         print("Unable to load backend weights. Using a fresh model")
+        # else:
+        #     print('pre trained weights are available just for RGB network.')
+
+        x = mobilenet3small(input_image)
+
+        self.feature_extractor = Model(input_image, x, name='MobileNetv3small_backend')
+        self.feature_extractor.trainable = not freeze
+
+    def normalize(self, image):
+        image = image / 255.
+        image = image - 0.5
+        image = image * 2.
+
+        return image
+
+class MobileNetV3LargeFeature(BaseFeatureExtractor):
+    """docstring for ClassName"""
+
+    def __init__(self, input_size, freeze, alpha=1.0):
+        input_image = Input(shape=input_size)
+
+        mobilenet3large = MobileNetV3Large(input_shape=input_size, include_top=False, alpha=alpha)
+        # if input_size[2] == 3:
+        #     try:
+        #         print("Loading pretrained weights: " + MOBILENET2_BACKEND_PATH)
+        #         mobilenet3small.load_weights(MOBILENET2_BACKEND_PATH)
+        #     except:
+        #         print("Unable to load backend weights. Using a fresh model")
+        # else:
+        #     print('pre trained weights are available just for RGB network.')
+
+        x = mobilenet3large(input_image)
+
+        self.feature_extractor = Model(input_image, x, name='MobileNetv3large_backend')
+        self.feature_extractor.trainable = not freeze
+
+    def normalize(self, image):
+        image = image / 255.
+        image = image - 0.5
+        image = image * 2.
+
+        return image
+
 class SqueezeNetFeature(BaseFeatureExtractor):
     """docstring for ClassName"""
 
@@ -425,5 +481,35 @@ class ResNet50Feature(BaseFeatureExtractor):
         image[..., 0] -= 103.939
         image[..., 1] -= 116.779
         image[..., 2] -= 123.68
+
+        return image
+
+class EfficientNetB0Feature(BaseFeatureExtractor):
+
+    def __init__(self, input_size, freeze):
+        effnetB0 = EfficientNetB0(input_shape=input_size, include_top=False)
+
+        self.feature_extractor = Model(effnetB0.layers[0].input, effnetB0.layers[-1].output)
+        self.feature_extractor.trainable = not freeze
+    
+
+    def normalize(self, image):
+        image = image[..., ::-1]
+        image = image.astype('float')
+
+        return image
+
+class EfficientNetV2B0Feature(BaseFeatureExtractor):
+
+    def __init__(self, input_size, freeze):
+        effnetB0 = EfficientNetV2B0(input_shape=input_size, include_top=False)
+
+        self.feature_extractor = Model(effnetB0.layers[0].input, effnetB0.layers[-1].output)
+        self.feature_extractor.trainable = not freeze
+    
+
+    def normalize(self, image):
+        image = image[..., ::-1]
+        image = image.astype('float')
 
         return image

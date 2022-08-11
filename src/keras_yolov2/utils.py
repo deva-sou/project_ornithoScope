@@ -10,8 +10,17 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 
-from .backend import (TinyYoloFeature, FullYoloFeature, MobileNetFeature, MobileNetV2Feature, SqueezeNetFeature, Inception3Feature,
-                      VGG16Feature, ResNet50Feature, BaseFeatureExtractor)
+from .backend import (  EfficientNetB0Feature, EfficientNetV2B0Feature, MobileNetV3LargeFeature,
+                        MobileNetV3SmallFeature,
+                        TinyYoloFeature,
+                        FullYoloFeature,
+                        MobileNetFeature,
+                        MobileNetV2Feature,
+                        SqueezeNetFeature,
+                        Inception3Feature,
+                        VGG16Feature,
+                        ResNet50Feature,
+                        BaseFeatureExtractor)
 
 
 class BoundBox:
@@ -267,6 +276,22 @@ def import_feature_extractor(backend, input_size, freeze=False):
         feature_extractor = Inception3Feature(input_size, freeze=freeze)
     elif backend == 'SqueezeNet':
         feature_extractor = SqueezeNetFeature(input_size, freeze=freeze)
+    elif backend.startswith('EfficientNetB0'):
+        feature_extractor = EfficientNetB0Feature(input_size, freeze=freeze)
+    elif backend.startswith('EfficientNetV2B0'):
+        feature_extractor = EfficientNetV2B0Feature(input_size, freeze=freeze)
+    elif backend.startswith('MobileNetV3Small'):
+        # Extract ALPHA
+        alpha = re.search("alpha=([0-1]?\.[0-9]*)", backend)
+        alpha = float(alpha.group(1)) if alpha != None else 1.0
+        # Build MobileNetFeature
+        feature_extractor = MobileNetV3SmallFeature(input_size, freeze=freeze, alpha=alpha)
+    elif backend.startswith('MobileNetV3Large'):
+        # Extract ALPHA
+        alpha = re.search("alpha=([0-1]?\.[0-9]*)", backend)
+        alpha = float(alpha.group(1)) if alpha != None else 1.0
+        # Build MobileNetFeature
+        feature_extractor = MobileNetV3LargeFeature(input_size, freeze=freeze, alpha=alpha)
     elif backend.startswith('MobileNetV2'):
         # Extract ALPHA
         alpha = re.search("alpha=([0-1]?\.[0-9]*)", backend)
