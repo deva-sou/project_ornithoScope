@@ -241,14 +241,14 @@ class MobileNetFeature(BaseFeatureExtractor):
         input_image = Input(shape=input_size)
 
         mobilenet = MobileNet(input_shape=input_size, include_top=False, alpha=alpha, depth_multiplier=depth_multiplier)
-        if input_size[2] == 3:
-            try:
-                print("Loading pretrained weights: " + MOBILENET_BACKEND_PATH)
-                mobilenet.load_weights(MOBILENET_BACKEND_PATH)
-            except:
-                print("Unable to load backend weights. Using a fresh model")
-        else:
-            print('pre trained weights are available just for RGB network.')
+        # if input_size[2] == 3:
+        #     try:
+        #         print("Loading pretrained weights: " + MOBILENET_BACKEND_PATH)
+        #         mobilenet.load_weights(MOBILENET_BACKEND_PATH)
+        #     except:
+        #         print("Unable to load backend weights. Using a fresh model")
+        # else:
+        #     print('pre trained weights are available just for RGB network.')
 
         x = mobilenet(input_image)
 
@@ -269,14 +269,14 @@ class MobileNetV2Feature(BaseFeatureExtractor):
         input_image = Input(shape=input_size)
 
         mobilenet2 = MobileNetV2(input_shape=input_size, include_top=False, alpha=alpha)
-        if input_size[2] == 3:
-            try:
-                print("Loading pretrained weights: " + MOBILENET2_BACKEND_PATH)
-                mobilenet2.load_weights(MOBILENET2_BACKEND_PATH)
-            except:
-                print("Unable to load backend weights. Using a fresh model")
-        else:
-            print('pre trained weights are available just for RGB network.')
+        # if input_size[2] == 3:
+        #     try:
+        #         print("Loading pretrained weights: " + MOBILENET2_BACKEND_PATH)
+        #         mobilenet2.load_weights(MOBILENET2_BACKEND_PATH)
+        #     except:
+        #         print("Unable to load backend weights. Using a fresh model")
+        # else:
+        #     print('pre trained weights are available just for RGB network.')
 
         x = mobilenet2(input_image)
 
