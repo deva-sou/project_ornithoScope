@@ -175,13 +175,13 @@ def _main_(args):
 
             print('\nClass metrics:')
             class_mean_P, class_mean_R, class_mean_F1 = print_results_metrics_per_classes(class_res, seen_valid_labels)
-            print(f"Globals class: P={class_p_global} R={class_r_global} F1={class_f1_global}")
-            print(f"Means bbox: P={class_mean_P} R={class_mean_R} F1={class_mean_F1}")
+            print(f"Class globals: P={class_p_global} R={class_r_global} F1={class_f1_global}")
+            print(f"Class means: P={class_mean_P} R={class_mean_R} F1={class_mean_F1}")
 
-            print('\nClass metrics:')
+            print('\nBBox metrics:')
             bbox_mean_P, bbox_mean_R, bbox_mean_F1 = print_results_metrics_per_classes(bbox_res, seen_valid_labels)
-            print(f"Globals bbox: P={bbox_p_global} R={bbox_r_global} F1={bbox_f1_global}")
-            print(f"Means bbox: P={bbox_mean_P} R={bbox_mean_R} F1={bbox_mean_F1}")
+            print(f"BBox globals: P={bbox_p_global} R={bbox_r_global} F1={bbox_f1_global}")
+            print(f"BBox means: P={bbox_mean_P} R={bbox_mean_R} F1={bbox_mean_F1}")
 
             global_results = [class_p_global,class_r_global,class_f1_global]
             pickle.dump(class_predictions, open( f"{path}/prediction_TP_FP_FN_{config['model']['backend']}_{test_name}.p", "wb" ) )
