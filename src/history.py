@@ -43,8 +43,9 @@ def _main_(args):
     plt.plot(steps, val_loss, label='Validation loss')
     
     # Modify figure params
-    xmin, xmax, ymin, ymax = plt.axis()
-    plt.axis((5, xmax, min(loss + val_loss), val_loss[5]))
+    _, xmax, _, _ = plt.axis()
+    xmin = int(0.1 * xmax)
+    plt.axis((xmin, xmax, min(loss + val_loss), val_loss[xmin]))
     plt.legend()
 
     # Save figure
