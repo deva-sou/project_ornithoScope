@@ -39,8 +39,8 @@ def _main_(args):
             "https://discord.com/api/webhooks/1000055986528198767/sZhup-kBr9wqVxIN4vDb5sRUJ9D-7mXaSeZxWssmprWiMqeC3KbmeNGiDoIuyZU4lgWA",
             adapter=RequestsWebhookAdapter())
     webhook.send(config_path)
-    webhook.send(CODE_QUOTES + ''.join(class_lines) + CODE_QUOTES)
     webhook.send(CODE_QUOTES + ''.join(bbox_lines) + CODE_QUOTES)
+    webhook.send(CODE_QUOTES + ''.join(class_lines) + CODE_QUOTES)
     webhook.send(file=File(pickle_path + '.jpg'))
 
 
