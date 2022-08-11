@@ -1,5 +1,4 @@
 import json
-from operator import invert
 import os
 
 
