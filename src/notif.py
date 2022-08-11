@@ -24,8 +24,10 @@ def _main_(args):
 
     # Get evaluate outfile lines
     lines = [line for line in open(config_path + '.log', 'r').readlines()]
-    result_line = lines.index('Final results:\n')
-    lines = lines[result_line:]
+    class_line = lines.index('Class metrics:\n')
+    bbox_line = lines.index('BBox metrics:\n')
+    class_lines = lines[class_line:bbox_line]
+    bbox_lines = lines[bbox_line:]
     
     # Get history output image
     root, ext = os.path.splitext(config['train']['saved_weights_name'])
@@ -37,7 +39,9 @@ def _main_(args):
             "https://discord.com/api/webhooks/1000055986528198767/sZhup-kBr9wqVxIN4vDb5sRUJ9D-7mXaSeZxWssmprWiMqeC3KbmeNGiDoIuyZU4lgWA",
             adapter=RequestsWebhookAdapter())
     webhook.send(config_path)
-    webhook.send(CODE_QUOTES + ''.join(lines) + CODE_QUOTES, file=File(pickle_path + '.jpg'))
+    webhook.send(CODE_QUOTES + ''.join(class_lines) + CODE_QUOTES)
+    webhook.send(CODE_QUOTES + ''.join(bbox_lines) + CODE_QUOTES)
+    webhook.send(file=File(pickle_path + '.jpg'))
 
 
 if __name__ == '__main__':
