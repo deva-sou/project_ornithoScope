@@ -37,17 +37,18 @@ for folder in folders:
     # Loop on every line (correspond to a unique box)
     for line in lines:
         # Extract and convert values
-        image_path, xmin, ymin, xmax, ymax, _, _, width, height = line.split(',')
-        xmin, ymin, xmax, ymax, width, height = int(xmin), int(ymin), int(xmax), int(ymax), int(width), int(height)
+        image_path, xmin, ymin, xmax, ymax, _, score, width, height = line.split(',')
+        xmin, ymin, xmax, ymax, width, height, score = float(xmin), float(ymin), float(xmax), float(ymax), float(width), float(height), float(score)
         
         if image_path in output_dict:
             # Add a new box
             output_dict[image_path]['boxes'].append({
-                                                "xmin": xmin,
-                                                "ymin": ymin,
-                                                "xmax": xmax,
-                                                "ymax": ymax,
-                                                "specie": specie
+                                                "xmin": xmin / width,
+                                                "ymin": ymin / height,
+                                                "xmax": xmax / width,
+                                                "ymax": ymax / height,
+                                                "specie": specie,
+                                                "score": score
                                             })
         else:
             # Create a new image in the dict
@@ -57,11 +58,12 @@ for folder in folders:
                 "width": width, 
                 "height": height, 
                 "boxes": [{
-                        "xmin": xmin,
-                        "ymin": ymin,
-                        "xmax": xmax,
-                        "ymax": ymax,
-                        "specie": specie
+                        "xmin": xmin / width,
+                        "ymin": ymin / height,
+                        "xmax": xmax / width,
+                        "ymax": ymax / height,
+                        "specie": specie,
+                        "score": score
                     }]
             }
     
@@ -71,11 +73,11 @@ for folder in folders:
     # Sort the list by the biggest boxes
     output_list = sorted(output_list,
             key=lambda img : max([
-                    (box['xmax'] - box['xmin']) * (box['ymax'] - box['xmin'])
+                    (box['xmax'] - box['xmin']) * (box['ymax'] - box['xmin']) * box['score']
                     for box in img['boxes']
                 ]),
             reverse=True)
     
     # Write the json file
-    with open(os.path.join(base_path, folder + '.json')) as file_buffer:
-        json.dump(output_list[:1000], file_buffer, 'w', indent=4)
+    with open(os.path.join(base_path, folder + '.json'), 'w') as file_buffer:
+        json.dump(output_list[:2000], file_buffer, indent=4)
