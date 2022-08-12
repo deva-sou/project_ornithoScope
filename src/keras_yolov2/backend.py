@@ -237,10 +237,10 @@ class TinyYoloFeature(BaseFeatureExtractor):
 class MobileNetFeature(BaseFeatureExtractor):
     """docstring for ClassName"""
 
-    def __init__(self, input_size, freeze, alpha=1.0, depth_multiplier=1):
+    def __init__(self, input_size, freeze, alpha=1.0):
         input_image = Input(shape=input_size)
 
-        mobilenet = MobileNet(input_shape=input_size, include_top=False, alpha=alpha, depth_multiplier=depth_multiplier, weights=None)
+        mobilenet = MobileNet(input_shape=input_size, include_top=False, alpha=alpha)
         # if input_size[2] == 3:
         #     try:
         #         print("Loading pretrained weights: " + MOBILENET_BACKEND_PATH)
@@ -268,7 +268,7 @@ class MobileNetV2Feature(BaseFeatureExtractor):
     def __init__(self, input_size, freeze, alpha=1.0, depth_multiplier=1):
         input_image = Input(shape=input_size)
 
-        mobilenet2 = MobileNetV2(input_shape=input_size, include_top=False, alpha=alpha, weights=None)
+        mobilenet2 = MobileNetV2(input_shape=input_size, include_top=False, alpha=alpha)
         # if input_size[2] == 3:
         #     try:
         #         print("Loading pretrained weights: " + MOBILENET2_BACKEND_PATH)
@@ -296,7 +296,7 @@ class MobileNetV3SmallFeature(BaseFeatureExtractor):
     def __init__(self, input_size, freeze, alpha=1.0):
         input_image = Input(shape=input_size)
 
-        mobilenet3small = MobileNetV3Small(input_shape=input_size, include_top=False, alpha=alpha, weights=None)
+        mobilenet3small = MobileNetV3Small(input_shape=input_size, include_top=False, alpha=alpha)
         # if input_size[2] == 3:
         #     try:
         #         print("Loading pretrained weights: " + MOBILENET2_BACKEND_PATH)
@@ -324,7 +324,7 @@ class MobileNetV3LargeFeature(BaseFeatureExtractor):
     def __init__(self, input_size, freeze, alpha=1.0):
         input_image = Input(shape=input_size)
 
-        mobilenet3large = MobileNetV3Large(input_shape=input_size, include_top=False, alpha=alpha, weights=None)
+        mobilenet3large = MobileNetV3Large(input_shape=input_size, include_top=False, alpha=alpha)
         # if input_size[2] == 3:
         #     try:
         #         print("Loading pretrained weights: " + MOBILENET2_BACKEND_PATH)
@@ -487,7 +487,7 @@ class ResNet50Feature(BaseFeatureExtractor):
 class EfficientNetB0Feature(BaseFeatureExtractor):
 
     def __init__(self, input_size, freeze):
-        effnetB0 = EfficientNetB0(input_shape=input_size, include_top=False, weights=None)
+        effnetB0 = EfficientNetB0(input_shape=input_size, include_top=False)
 
         self.feature_extractor = Model(effnetB0.layers[0].input, effnetB0.layers[-1].output)
         self.feature_extractor.trainable = not freeze
@@ -502,7 +502,7 @@ class EfficientNetB0Feature(BaseFeatureExtractor):
 class EfficientNetV2B0Feature(BaseFeatureExtractor):
 
     def __init__(self, input_size, freeze):
-        effnetB0 = EfficientNetV2B0(input_shape=input_size, include_top=False, weights=None)
+        effnetB0 = EfficientNetV2B0(input_shape=input_size, include_top=False)
 
         self.feature_extractor = Model(effnetB0.layers[0].input, effnetB0.layers[-1].output)
         self.feature_extractor.trainable = not freeze

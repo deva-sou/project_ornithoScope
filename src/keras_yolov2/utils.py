@@ -302,11 +302,8 @@ def import_feature_extractor(backend, input_size, freeze=False):
         # Extract ALPHA
         alpha = re.search("alpha=([0-1]?\.[0-9]*)", backend)
         alpha = float(alpha.group(1)) if alpha != None else 1.0
-        # Extract RHO
-        rho = re.search("rho=([0-9]+)", backend)
-        rho = int(rho.group(1)) if rho != None else 1
         # Build MobileNetFeature
-        feature_extractor = MobileNetFeature(input_size, freeze=freeze, alpha=alpha, depth_multiplier=rho)
+        feature_extractor = MobileNetFeature(input_size, freeze=freeze, alpha=alpha)
     elif backend == 'Full Yolo':
         feature_extractor = FullYoloFeature(input_size, freeze=freeze)
     elif backend == 'Tiny Yolo':
