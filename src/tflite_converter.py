@@ -7,28 +7,28 @@ from keras_yolov2.frontend import YOLO
 
 
 argparser = argparse.ArgumentParser(
-  description='Predict tflite model in real time or with movies / images')
+    description='Predict tflite model in real time or with movies / images')
 
 argparser.add_argument(
-  '-c',
-  '--conf',
-  default='',
-  type=str,
-  help='Path to configuration file')
+    '-c',
+    '--conf',
+    default='',
+    type=str,
+    help='Path to configuration file')
 
 argparser.add_argument(
-  '-w',
-  '--weights',
-  default='',
-  type=str,
-  help='Path to pretrained weights')
+    '-w',
+    '--weights',
+    default='',
+    type=str,
+    help='Path to pretrained weights')
 
 argparser.add_argument(
-  '-l',
-  '--lite',
-  default='',
-  type=str,
-  help='Path to tflite model')
+    '-l',
+    '--lite',
+    default='',
+    type=str,
+    help='Path to tflite model')
 
 
 def _main_(args):
