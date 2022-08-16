@@ -265,7 +265,7 @@ class MobileNetFeature(BaseFeatureExtractor):
 class MobileNetV2Feature(BaseFeatureExtractor):
     """docstring for ClassName"""
 
-    def __init__(self, input_size, freeze, alpha=1.0, depth_multiplier=1):
+    def __init__(self, input_size, freeze, alpha=1.0):
         input_image = Input(shape=input_size)
 
         mobilenet2 = MobileNetV2(input_shape=input_size, include_top=False, alpha=alpha)
