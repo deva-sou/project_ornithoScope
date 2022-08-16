@@ -12,7 +12,7 @@ argparser = argparse.ArgumentParser(
 argparser.add_argument(
     '-p',
     '--pick',
-    default='data/pickles/history/history_data/saved_weights/new_weights/lr_fixé_all_data_Adam_OCS_new_data_cap200_v2_bestLoss.h5.p',
+    default='data/pickles/history/history_data/saved_weights/new_weights/lr_fixé_all_data_Adam_OCS_new_data_cap200_v1_new_valid_and_train_data_bestLoss.h5.p',
     help='Path to pickle file.')
 
 

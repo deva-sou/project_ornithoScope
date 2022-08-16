@@ -388,7 +388,7 @@ class YOLO(object):
         if lr_scheduler_config['name'] in ('OneCycleScheduler', 'OCS'):
             # Parse OneCycleScheduler arguments
             lr_max = float(lr_scheduler_config.get('lr_max', 1e-3))
-            steps = int(lr_scheduler_config.get('steps', 10000))
+            steps = int(lr_scheduler_config.get('steps', 5000))
             mom_min = float(lr_scheduler_config.get('mom_min', 0.85))
             mom_max = float(lr_scheduler_config.get('mom_max', 0.95))
             phase_1_pct = float(lr_scheduler_config.get('phase_1_pct', 0.3))
