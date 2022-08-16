@@ -122,6 +122,7 @@ class YoloLoss(object):
         # K.print_tensor(y_pred.shape)
         p_c_true = K.one_hot(K.argmax(y_true[..., 5:], axis=-1), y_pred.shape[4] - 5)
         loss_class_arg = K.sum(K.square(p_c_true - p_c_pred), axis=-1)
+        # loss_class_arg = K.sum(K.square(p_c_true - p_c_pred) * K.square(1 - p_c_pred), axis=-1)
 
         indicator_class = y_true[..., 4] * self.lambda_class
 
