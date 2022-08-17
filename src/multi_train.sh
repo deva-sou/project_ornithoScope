@@ -1,3 +1,5 @@
+#This is a multi train but also a multi-evaluate
+
 # Get configs_list_path
 configs_list_path=$1
 
@@ -20,7 +22,7 @@ do
         continue
     fi
 
-    # Start training session with config_path
+    # Start training session with config_path 
     waiting=true
     while $waiting
     do
@@ -30,7 +32,7 @@ do
             tmux new-session -s "DL_TRAIN_0" -d "\
                     source ../venv_ornithoscope/bin/activate &&\
                     export CUDA_VISIBLE_DEVICES=0 &&\
-                    python3 train.py -c $config_path &&\
+                    python3 train.py -c $config_path &&\ 
                     python3 evaluate.py -c $config_path > $config_path'.log' &&\
                     python3 history.py -c $config_path &&\
                     python3 notif.py -c $config_path &&\

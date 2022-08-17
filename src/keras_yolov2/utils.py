@@ -20,6 +20,7 @@ from .backend import (  EfficientNetB0Feature, EfficientNetV2B0Feature, MobileNe
                         Inception3Feature,
                         VGG16Feature,
                         ResNet50Feature,
+                        ResNet101Feature,
                         BaseFeatureExtractor)
 
 
@@ -312,6 +313,8 @@ def import_feature_extractor(backend, input_size, freeze=False):
         feature_extractor = VGG16Feature(input_size, freeze=freeze)
     elif backend == 'ResNet50':
         feature_extractor = ResNet50Feature(input_size, freeze=freeze)
+    elif backend == 'ResNet101':
+        feature_extractor = ResNet101Feature(input_size, freeze=freeze)
     elif os.path.dirname(backend) != "":
         base_path = os.path.dirname(backend)
         sys.path.append(base_path)

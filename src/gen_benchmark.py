@@ -19,11 +19,12 @@ def _main_(args):
     config_folder, config_file = os.path.split(config_path)
 
     configs = [
-        {'BACKEND': 'MobileNetV2',      'ALPHA': '1.0', 'RHO': '1'},
-        {'BACKEND': 'MobileNetV3Small', 'ALPHA': '1.0', 'RHO': '1'},
-        {'BACKEND': 'MobileNetV3Large', 'ALPHA': '1.0', 'RHO': '1'},
-        {'BACKEND': 'EfficientNetB0',   'ALPHA': '1.0', 'RHO': '1'},
-        {'BACKEND': 'EfficientNetV2B0', 'ALPHA': '1.0', 'RHO': '1'},
+        {'BACKEND': 'ResNet50', 'RHO': '224'},
+        {'BACKEND': 'ResNet50', 'RHO': '192'},
+        {'BACKEND': 'ResNet101', 'RHO': '224'},
+        {'BACKEND': 'ResNet101', 'RHO': '192'},
+
+        
     ]
 
     lines = ''

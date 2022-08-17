@@ -3,6 +3,7 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.applications.efficientnet_v2 import EfficientNetV2B0
 from tensorflow.keras.applications.mobilenet import MobileNet
 from tensorflow.keras.applications.resnet50 import ResNet50
+from tensorflow.keras.applications.resnet import ResNet101
 from tensorflow.keras.applications.vgg16 import VGG16
 from tensorflow.keras.applications import InceptionV3, EfficientNetB0, MobileNetV2, MobileNetV3Small, MobileNetV3Large
 from tensorflow.keras.layers import Activation, Conv2D, Input, MaxPooling2D, BatchNormalization, Lambda, LeakyReLU, \
@@ -19,6 +20,7 @@ MOBILENET2_BACKEND_PATH = base_path + "transfert_learning/mobilenet_v2_imagenet.
 INCEPTION3_BACKEND_PATH = base_path + "inception_backend.h5"  # should be hosted on a server
 VGG16_BACKEND_PATH = base_path + "vgg16_backend.h5"  # should be hosted on a server
 RESNET50_BACKEND_PATH = base_path + "resnet50_backend.h5"  # should be hosted on a server
+RESNET101_BACKEND_PATH = base_path + "resnet101_backend.h5"  # should be hosted on a server
 
 
 class BaseFeatureExtractor(object):
@@ -472,6 +474,27 @@ class ResNet50Feature(BaseFeatureExtractor):
         # resnet50.load_weights(RESNET50_BACKEND_PATH)
 
         self.feature_extractor = Model(resnet50.layers[0].input, resnet50.layers[-1].output)
+        self.feature_extractor.trainable = not freeze
+
+    def normalize(self, image):
+        image = image[..., ::-1]
+        image = image.astype('float')
+
+        image[..., 0] -= 103.939
+        image[..., 1] -= 116.779
+        image[..., 2] -= 123.68
+
+        return image
+
+class ResNet101Feature(BaseFeatureExtractor):
+    """docstring for ClassName"""
+
+    def __init__(self, input_size, freeze):
+        resnet101 = ResNet101(input_shape=input_size, include_top=False)
+        resnet101.layers.pop()  # remove the average pooling layer
+        # resnet101.load_weights(RESNET101_BACKEND_PATH)
+
+        self.feature_extractor = Model(resnet101.layers[0].input, resnet101.layers[-1].output)
         self.feature_extractor.trainable = not freeze
 
     def normalize(self, image):

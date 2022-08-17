@@ -4,6 +4,9 @@ import json
 
 from discord import Webhook, RequestsWebhookAdapter, File
 
+
+#ce code permet d'avoir une notif discord quand on lance un multi train à partir d'un tmux
+
 argparser = argparse.ArgumentParser(
     description='Plot training loss and validation loss hisotiry.')
 
@@ -36,7 +39,7 @@ def _main_(args):
 
     # Send message with the evaluate results and history image
     webhook = Webhook.from_url(
-            "https://discord.com/api/webhooks/1000055986528198767/sZhup-kBr9wqVxIN4vDb5sRUJ9D-7mXaSeZxWssmprWiMqeC3KbmeNGiDoIuyZU4lgWA",
+            "https://discordapp.com/api/webhooks/1009005952789389392/bYMBowD3BAlfMstfRXQeRFo-UYppmshPnzJsYwztpEaWMhidpIqQqA-iEj1wVUnGBfSH",
             adapter=RequestsWebhookAdapter())
     webhook.send(config_path)
     webhook.send(CODE_QUOTES + ''.join(bbox_lines) + CODE_QUOTES)
