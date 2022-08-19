@@ -272,9 +272,9 @@ def import_dynamically(name):
 
 
 def import_feature_extractor(backend, input_size, freeze=False):
-    if backend == 'Inception3':
+    if backend.startswith('Inception3'):
         feature_extractor = Inception3Feature(input_size, freeze=freeze)
-    elif backend == 'SqueezeNet':
+    elif backend.startswith('SqueezeNet'):
         feature_extractor = SqueezeNetFeature(input_size, freeze=freeze)
     elif backend.startswith('EfficientNetB0'):
         feature_extractor = EfficientNetB0Feature(input_size, freeze=freeze)
@@ -304,13 +304,13 @@ def import_feature_extractor(backend, input_size, freeze=False):
         alpha = float(alpha.group(1)) if alpha != None else 1.0
         # Build MobileNetFeature
         feature_extractor = MobileNetFeature(input_size, freeze=freeze, alpha=alpha)
-    elif backend == 'Full Yolo':
+    elif backend.startswith('Full Yolo'):
         feature_extractor = FullYoloFeature(input_size, freeze=freeze)
-    elif backend == 'Tiny Yolo':
+    elif backend.startswith('Tiny Yolo'):
         feature_extractor = TinyYoloFeature(input_size, freeze=freeze)
-    elif backend == 'VGG16':
+    elif backend.startswith('VGG16'):
         feature_extractor = VGG16Feature(input_size, freeze=freeze)
-    elif backend == 'ResNet50':
+    elif backend.startswith('ResNet50'):
         feature_extractor = ResNet50Feature(input_size, freeze=freeze)
     elif os.path.dirname(backend) != "":
         base_path = os.path.dirname(backend)
