@@ -14,6 +14,7 @@ argparser.add_argument(
     help='Path to config file.')
 
 CODE_QUOTES = '```'
+URL = "https://discord.com/api/webhooks/1000055986528198767/sZhup-kBr9wqVxIN4vDb5sRUJ9D-7mXaSeZxWssmprWiMqeC3KbmeNGiDoIuyZU4lgWA"
 
 def _main_(args):
     config_path = args.conf
@@ -35,9 +36,7 @@ def _main_(args):
     pickle_path = f'{saved_pickle_path}/history/history_{root}_bestLoss{ext}.p'
 
     # Send message with the evaluate results and history image
-    webhook = Webhook.from_url(
-            "https://discord.com/api/webhooks/1000055986528198767/sZhup-kBr9wqVxIN4vDb5sRUJ9D-7mXaSeZxWssmprWiMqeC3KbmeNGiDoIuyZU4lgWA",
-            adapter=RequestsWebhookAdapter())
+    webhook = Webhook.from_url(URL, adapter=RequestsWebhookAdapter())
     webhook.send(config_path)
     webhook.send(CODE_QUOTES + ''.join(bbox_lines) + CODE_QUOTES)
     webhook.send(CODE_QUOTES + ''.join(class_lines) + CODE_QUOTES)
