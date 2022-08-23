@@ -91,6 +91,108 @@ python3 evaluate.py -c path_custom_config.json
 python3 predict.py -c path_custom_config.json -w path_seleccted_weights.h5 -i path_image_folder_to_predict
 ```
 
+
+- Bouding box viewer :
+
+Show training set images (with bouding boxes) of a config file.
+```
+python3 boundingbox_viewer.py -c <path to config file>
+```
+> `[N]` : Next image\
+> `[P]` : Previous image\
+> `[I]` : Print current image's info
+
+
+- Cap input :
+
+Cap input count for each class.
+```
+python3 cap_input.py
+```
+> `input_path` is hard coded.\
+> `cap` is hard coded.
+
+
+- [Learning rate finder](https://www.avanwyk.com/finding-a-learning-rate-in-tensorflow-2/) :
+
+Plot a graph to find the optimal learning rate.
+```
+python3 find_lr.py -c <path to config file>
+```
+
+
+- IoU and Score Threshold finder :
+
+Plot a graph to find the bests thresholds.\
+You first need to evaluate your config with a high IoU threshold and a low Score threshold.
+```
+python3 find_thresholds.py
+```
+> `pickle_path` is hard coded. It referes to the `boxes_*.p` pickle file.\
+> `config_path` is hard coded.
+
+
+- Benchmark generator :
+
+Generate config files based on a template.
+```
+python3 gen_benchmark.py -c <path to the template config file>
+```
+> `configs` is a list of dictionnary.\
+> Every dictionnary will create a config file replacing the `keys` by its `values`
+
+
+- Split a train set into train/valid set :
+
+```
+python3 gen_valid_input.py
+```
+> `input_path` is hard coded.\
+> `cap` is hard coded.\
+> `max_ratio` is hard coded.
+
+
+- History losses :
+
+Plot the train and validation losses of the training.
+```
+python3 history.py -c <path to config file>
+```
+The result will not be plot. You can find the result image at the same location of the history pickle.
+
+
+- Convert predicted CSVs in JSON : (Not user friendly)
+
+Predicted CSVs must made using the `-o csv_input` option.
+```
+python3 json_converter.py
+```
+
+
+- Run multiple train :
+
+In `notif.py`, change the `URL` according to a [discord webhook](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks) of your discord server.\
+In a text file, write every config file you want to train.
+```
+sh multi_train.sh <path to text file listing config files>
+```
+
+- Show evaluation :
+
+Shows images with predicted bounding boxes.
+```
+python3 show_evaluation.py
+```
+> `pickle_path` is hard coded. It referes to the `boxes_*.p` or `bad_boxes_*.p` pickle file.
+
+
+- Convert a model to TFLite :
+```
+python3 tflite_converter.py -c <path to config file> -l <path to output tflite file>
+```
+
+
+
 <!-- CONTACT -->
 # Contact
 SOU Deva [@devasou](https://www.linkedin.com/in/deva-sou/)
