@@ -10,7 +10,8 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 
-from .backend import (  EfficientNetB0Feature, EfficientNetV2B0Feature, MobileNetV3LargeFeature,
+from .backend import (  EfficientNetB0Feature, EfficientNetV2B0Feature, EfficientNetB1Feature, EfficientNetV2B1Feature,
+                        MobileNetV3LargeFeature,
                         MobileNetV3SmallFeature,
                         TinyYoloFeature,
                         FullYoloFeature,
@@ -277,10 +278,14 @@ def import_feature_extractor(backend, input_size, freeze=False):
         feature_extractor = Inception3Feature(input_size, freeze=freeze)
     elif backend == 'SqueezeNet':
         feature_extractor = SqueezeNetFeature(input_size, freeze=freeze)
-    elif backend.startswith('EfficientNetB0'):
+    elif backend.startswith('EfficientNetB0'): #startswith est une method qui recherche le début d'un string
         feature_extractor = EfficientNetB0Feature(input_size, freeze=freeze)
     elif backend.startswith('EfficientNetV2B0'):
         feature_extractor = EfficientNetV2B0Feature(input_size, freeze=freeze)
+    elif backend.startswith('EfficientNetB1'):
+        feature_extractor = EfficientNetB1Feature(input_size, freeze=freeze)
+    elif backend.startswith('EfficientNetV2B1'):
+        feature_extractor = EfficientNetV2B1Feature(input_size, freeze=freeze)
     elif backend.startswith('MobileNetV3Small'):
         # Extract ALPHA
         alpha = re.search("alpha=([0-1]?\.[0-9]*)", backend)

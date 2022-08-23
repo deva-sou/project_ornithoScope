@@ -1,9 +1,9 @@
 
 {
     "model" : {
-        "backend":              "BACKEND-alpha = ALPHA",
-        "input_size_w":         RHO,
-        "input_size_h":         RHO,
+        "backend":              "MobileNet-alpha = 1.4",
+        "input_size_w":         224,
+        "input_size_h":         224,
         "gray_mode":            false,
         "anchors":              [5.49950,8.57597, 9.26930,17.66783, 10.56113,10.43321, 15.44298,23.17856, 34.00303,34.41259],
         "labels":               ["MESCHA", "SITTOR", "MESBLE", "MESNON", "PINARB", "ACCMOU", "ROUGOR", "VEREUR", "TOUTUR", "ECUROU", "PIEBAV", "MULGRI", "MESNOI", "MESHUP"],
@@ -21,7 +21,7 @@
 
     "train": {
         "train_times":          1,
-        "pretrained_weights":   "data/saved_weights/benchmark_weights/BACKEND-ALPHA-RHO-AUG_bestLoss.h5",
+        "pretrained_weights":   "data/saved_weights/benchmark_weights/MobileNet-1.4-224-AUG_bestLoss.h5",
         "freeze":               false,
         "batch_size":           16,
         "learning_rate":        1e-3,
@@ -58,7 +58,7 @@
         "sampling":             true,
         "mosaic":               "none",
 
-        "saved_weights_name":   "data/saved_weights/benchmark_weights/BACKEND-ALPHA-RHO-AUG.h5"
+        "saved_weights_name":   "data/saved_weights/benchmark_weights/MobileNet-1.4-224-AUG.h5"
     },
 
     "valid": {

@@ -1,1 +1,4 @@
-config/benchmark_config/ResNet101-224.json
+config/benchmark_config/MobileNet-224-1.4.json
+config/benchmark_config/MobileNet-224-0.35.json
+config/benchmark_config/MobileNet-224-1.3.json
+config/benchmark_config/MobileNet-224-0.5.json

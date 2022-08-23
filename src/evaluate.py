@@ -19,7 +19,7 @@ argparser = argparse.ArgumentParser(
 argparser.add_argument(
     '-c',
     '--conf',
-    default='config/config_lab_mobilenetV1.json',
+    default='config/benchmark_config/EfficientNetV2B1-224.json',
     help='path to configuration file')
 
 argparser.add_argument(

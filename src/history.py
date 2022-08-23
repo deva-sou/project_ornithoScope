@@ -33,8 +33,15 @@ def _main_(args):
         history = pickle.load(pickle_buffer)
         
     # Extract losses
+
     loss = history['loss']
     val_loss = history['val_loss']
+
+    for i in range(len(loss)):
+        if loss[i] > 100:
+            loss[i] = 100
+        if val_loss[i] > 100:
+            val_loss[i] = 100
 
     steps = [i for i in range(len(loss))]
 

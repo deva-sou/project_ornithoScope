@@ -1,11 +1,11 @@
 import tensorflow as tf
 from tensorflow.keras.models import Model
-from tensorflow.keras.applications.efficientnet_v2 import EfficientNetV2B0
+from tensorflow.keras.applications.efficientnet_v2 import EfficientNetV2B0, EfficientNetV2B1
 from tensorflow.keras.applications.mobilenet import MobileNet
 from tensorflow.keras.applications.resnet50 import ResNet50
 from tensorflow.keras.applications.resnet import ResNet101
 from tensorflow.keras.applications.vgg16 import VGG16
-from tensorflow.keras.applications import InceptionV3, EfficientNetB0, MobileNetV2, MobileNetV3Small, MobileNetV3Large
+from tensorflow.keras.applications import InceptionV3, EfficientNetB0, EfficientNetB1, MobileNetV2, MobileNetV3Small, MobileNetV3Large
 from tensorflow.keras.layers import Activation, Conv2D, Input, MaxPooling2D, BatchNormalization, Lambda, LeakyReLU, \
     concatenate
 
@@ -526,6 +526,36 @@ class EfficientNetV2B0Feature(BaseFeatureExtractor):
 
     def __init__(self, input_size, freeze):
         effnetB0 = EfficientNetV2B0(input_shape=input_size, include_top=False)
+
+        self.feature_extractor = Model(effnetB0.layers[0].input, effnetB0.layers[-1].output)
+        self.feature_extractor.trainable = not freeze
+    
+
+    def normalize(self, image):
+        image = image[..., ::-1]
+        image = image.astype('float')
+
+        return image
+
+class EfficientNetB1Feature(BaseFeatureExtractor):
+
+    def __init__(self, input_size, freeze):
+        effnetB0 = EfficientNetB1(input_shape=input_size, include_top=False)
+
+        self.feature_extractor = Model(effnetB0.layers[0].input, effnetB0.layers[-1].output)
+        self.feature_extractor.trainable = not freeze
+    
+
+    def normalize(self, image):
+        image = image[..., ::-1]
+        image = image.astype('float')
+
+        return image
+
+class EfficientNetV2B1Feature(BaseFeatureExtractor):
+
+    def __init__(self, input_size, freeze):
+        effnetB0 = EfficientNetV2B1(input_shape=input_size, include_top=False)
 
         self.feature_extractor = Model(effnetB0.layers[0].input, effnetB0.layers[-1].output)
         self.feature_extractor.trainable = not freeze

@@ -15,14 +15,11 @@ argparser.add_argument(
 
 
 def _main_(args):
-    config_path = args.conf
+    config_path = args.conf 
     config_folder, config_file = os.path.split(config_path)
 
     configs = [
-        {'BACKEND': 'ResNet50', 'RHO': '224'},
-        {'BACKEND': 'ResNet50', 'RHO': '192'},
-        {'BACKEND': 'ResNet101', 'RHO': '224'},
-        {'BACKEND': 'ResNet101', 'RHO': '192'},
+        {'BACKEND': 'EfficientNetV2B1', 'RHO': '224'},
 
         
     ]
