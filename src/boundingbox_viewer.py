@@ -25,14 +25,15 @@ def main(args):
                                         config['model']['labels'],
                                         config['data']['base_path'])
     
-    print('Total image count:', len(train_imgs))
+    n_train_imgs = len(train_imgs)
+    print('Total image count:', n_train_imgs)
 
     # Main loop
     id = 0
     running = True
     while running:
         # Extract image path and boxes
-        train_img = train_imgs[id]
+        train_img = train_imgs[id % n_train_imgs]
         image = cv2.imread(train_img['filename'])
         bboxs = train_img['object']
 
@@ -47,11 +48,11 @@ def main(args):
         key = cv2.waitKey(0)
         if key == ord('q') or key == 27:
             running = False
-        elif key == 82: # up arrow
+        elif key == ord('n'): # Next
             id += 1
-        elif key == 84: # down arrow
+        elif key == ord('p'): # Previous
             id -= 1
-        elif key == 81 or key == 83: # left/right arrow
+        elif key == ord('i'): # Info
             # Print image infos
             print(id, train_img['filename'])
 
