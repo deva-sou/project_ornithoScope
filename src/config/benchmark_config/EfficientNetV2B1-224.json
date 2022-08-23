@@ -1,7 +1,7 @@
 
 {
     "model" : {
-        "backend":              "EfficientNetV2B1",
+        "backend":              "EfficientNetV2B1", 
         "input_size_w":         224,
         "input_size_h":         224,
         "gray_mode":            false,
