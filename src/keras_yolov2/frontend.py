@@ -46,9 +46,9 @@ class YOLO(object):
 
         self._feature_extractor = import_feature_extractor(backend, self._input_size, self._freeze)
                
-        
-        print(self._feature_extractor.feature_extractor.summary())
-        print(self._feature_extractor.get_output_shape())
+        # print cnn model summary
+        self._feature_extractor.feature_extractor.summary()
+
         self._grid_h, self._grid_w = self._feature_extractor.get_output_shape()
         features = self._feature_extractor.extract(input_image)
 
@@ -60,8 +60,7 @@ class YOLO(object):
                         kernel_initializer='lecun_normal')(features)
         output = Reshape((self._grid_h, self._grid_w, self._nb_box, 4 + 1 + self._nb_class), name="YOLO_output")(output)
 
-        self._model = Model(input_image, output)
-        print(self._model.summary())
+        self._model = Model(input_image, output, name='Global model')
 
         # initialize the weights of the detection layer
         layer = self._model.get_layer("Detection_layer")
