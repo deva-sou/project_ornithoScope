@@ -171,7 +171,7 @@ class FullYoloFeature(BaseFeatureExtractor):
         x = BatchNormalization(name='norm_22')(x)
         x = LeakyReLU(alpha=0.1)(x)
 
-        self.feature_extractor = Model(input_image, x, name='Full_YOLO_backend')
+        self.feature_extractor = Model(input_image, x, name='FullYoloFeature')
         self.feature_extractor.trainable = not freeze
 
         if input_size[2] == 3:
@@ -219,7 +219,7 @@ class TinyYoloFeature(BaseFeatureExtractor):
             x = BatchNormalization(name='norm_' + str(i + 7))(x)
             x = LeakyReLU(alpha=0.1)(x)
 
-        self.feature_extractor = Model(input_image, x, name='Tiny_YOLO_backend')
+        self.feature_extractor = Model(input_image, x, name='TinyYoloFeature')
         self.feature_extractor.trainable = not freeze
         if input_size[2] == 3:
             try:
@@ -252,7 +252,7 @@ class MobileNetFeature(BaseFeatureExtractor):
 
         x = mobilenet(input_image)
 
-        self.feature_extractor = Model(input_image, x, name='MobileNet_backend')
+        self.feature_extractor = Model(input_image, x, name='MobileNetFeature')
         self.feature_extractor.trainable = not freeze
         
     def normalize(self, image):
@@ -280,7 +280,7 @@ class MobileNetV2Feature(BaseFeatureExtractor):
 
         x = mobilenet2(input_image)
 
-        self.feature_extractor = Model(input_image, x, name='MobileNetv2_backend')
+        self.feature_extractor = Model(input_image, x, name='MobileNetV2Feature')
         self.feature_extractor.trainable = not freeze
 
     def normalize(self, image):
@@ -308,7 +308,7 @@ class MobileNetV3SmallFeature(BaseFeatureExtractor):
 
         x = mobilenet3small(input_image)
 
-        self.feature_extractor = Model(input_image, x, name='MobileNetv3small_backend')
+        self.feature_extractor = Model(input_image, x, name='MobileNetV3SmallFeature')
         self.feature_extractor.trainable = not freeze
 
     def normalize(self, image):
@@ -336,7 +336,7 @@ class MobileNetV3LargeFeature(BaseFeatureExtractor):
 
         x = mobilenet3large(input_image)
 
-        self.feature_extractor = Model(input_image, x, name='MobileNetv3large_backend')
+        self.feature_extractor = Model(input_image, x, name='MobileNetV3LargeFeature')
         self.feature_extractor.trainable = not freeze
 
     def normalize(self, image):
@@ -393,7 +393,7 @@ class SqueezeNetFeature(BaseFeatureExtractor):
         x = fire_module(x, fire_id=8, squeeze=64, expand=256)
         x = fire_module(x, fire_id=9, squeeze=64, expand=256)
 
-        self.feature_extractor = Model(input_image, x, name='SqueezeNet_backend')
+        self.feature_extractor = Model(input_image, x, name='SqueezeNetFeature')
         self.feature_extractor.trainable = not freeze
         if input_size[2] == 3:
             try:
@@ -431,7 +431,7 @@ class Inception3Feature(BaseFeatureExtractor):
 
         x = inception(input_image)
 
-        self.feature_extractor = Model(input_image, x, name='Inception3_backend')
+        self.feature_extractor = Model(input_image, x, name='Inception3Feature')
         self.feature_extractor.trainable = not freeze
 
     def normalize(self, image):
@@ -446,7 +446,7 @@ class VGG16Feature(BaseFeatureExtractor):
     """docstring for ClassName"""
 
     def __init__(self, input_size, freeze):
-        vgg16 = VGG16(input_shape=input_size, include_top=False)
+        vgg16 = VGG16(input_shape=input_size, include_top=False, name='VGG16Feature')
         # vgg16.load_weights(VGG16_BACKEND_PATH)
 
         self.feature_extractor = vgg16
@@ -471,7 +471,7 @@ class ResNet50Feature(BaseFeatureExtractor):
         resnet50.layers.pop()  # remove the average pooling layer
         # resnet50.load_weights(RESNET50_BACKEND_PATH)
 
-        self.feature_extractor = Model(resnet50.layers[0].input, resnet50.layers[-1].output)
+        self.feature_extractor = Model(resnet50.layers[0].input, resnet50.layers[-1].output, name='ResNet50Feature')
         self.feature_extractor.trainable = not freeze
 
     def normalize(self, image):
@@ -489,7 +489,7 @@ class EfficientNetB0Feature(BaseFeatureExtractor):
     def __init__(self, input_size, freeze):
         effnetB0 = EfficientNetB0(input_shape=input_size, include_top=False)
 
-        self.feature_extractor = Model(effnetB0.layers[0].input, effnetB0.layers[-1].output)
+        self.feature_extractor = Model(effnetB0.layers[0].input, effnetB0.layers[-1].output, name='EfficientNetB0Feature')
         self.feature_extractor.trainable = not freeze
     
 
@@ -504,7 +504,7 @@ class EfficientNetV2B0Feature(BaseFeatureExtractor):
     def __init__(self, input_size, freeze):
         effnetB0 = EfficientNetV2B0(input_shape=input_size, include_top=False)
 
-        self.feature_extractor = Model(effnetB0.layers[0].input, effnetB0.layers[-1].output)
+        self.feature_extractor = Model(effnetB0.layers[0].input, effnetB0.layers[-1].output, name='EfficientNetV2B0Feature')
         self.feature_extractor.trainable = not freeze
     
 
