@@ -12,6 +12,9 @@ from keras_yolov2.utils import (bbox_iou,
                                 results_metrics_per_classes)
 
 
+#d'abord évaluer un fichier config
+#mettre ce fichier config en hardcode sur ce fichier, le lancer et obtenir le graphique
+
 def load_k(k):
     """
     Loada the k-th image.
@@ -32,7 +35,7 @@ def load_k(k):
 
 
 # Path to evaluation hisotry
-pickle_path = "data/pickles/MobileNet_2022-08-08-19:53:49_0/boxes_MobileNet_input_test.p"
+pickle_path = "data/pickles/MobileNet_2022-08-08-19:53:49_0/boxes_MobileNet_input_test.p" #prendre le doc qui commence par boxes
 
 # Open pickle
 with open(pickle_path, 'rb') as fp:

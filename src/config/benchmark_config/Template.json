@@ -1,7 +1,7 @@
 
 {
     "model" : {
-        "backend":              "BACKEND-alpha = ALPHA",
+        "backend":              "BACKEND",
         "input_size_w":         RHO,
         "input_size_h":         RHO,
         "gray_mode":            false,

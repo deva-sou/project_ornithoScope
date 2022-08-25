@@ -19,7 +19,11 @@ def _main_(args):
     config_folder, config_file = os.path.split(config_path)
 
     configs = [
-        {'BACKEND': 'EfficientNetV2B1', 'RHO': '224'},
+        {'BACKEND': 'EfficientNetB1', 'RHO': '224', 'AUG': '1'},
+        {'BACKEND': 'EfficientNetB1', 'RHO': '224', 'AUG': '2'},
+        {'BACKEND': 'EfficientNetB1', 'RHO': '224', 'AUG': '3'},
+        {'BACKEND': 'EfficientNetB1', 'RHO': '224', 'AUG': '4'},
+        
 
         
     ]

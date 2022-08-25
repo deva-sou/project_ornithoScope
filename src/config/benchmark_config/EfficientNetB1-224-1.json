@@ -1,7 +1,7 @@
 
 {
     "model" : {
-        "backend":              "MobileNet-alpha = 0.75",
+        "backend":              "EfficientNetB1",
         "input_size_w":         224,
         "input_size_h":         224,
         "gray_mode":            false,
@@ -21,7 +21,7 @@
 
     "train": {
         "train_times":          1,
-        "pretrained_weights":   "data/saved_weights/benchmark_weights/MobileNet-0.75-224-AUG_bestLoss.h5",
+        "pretrained_weights":   "data/saved_weights/benchmark_weights/EfficientNetB1-ALPHA-224-1_bestLoss.h5",
         "freeze":               false,
         "batch_size":           16,
         "learning_rate":        1e-3,
@@ -58,7 +58,7 @@
         "sampling":             true,
         "mosaic":               "none",
 
-        "saved_weights_name":   "data/saved_weights/benchmark_weights/MobileNet-0.75-224-AUG.h5"
+        "saved_weights_name":   "data/saved_weights/benchmark_weights/EfficientNetB1-ALPHA-224-1.h5"
     },
 
     "valid": {

@@ -9,6 +9,7 @@ from tensorflow.keras.applications import InceptionV3, EfficientNetB0, Efficient
 from tensorflow.keras.layers import Activation, Conv2D, Input, MaxPooling2D, BatchNormalization, Lambda, LeakyReLU, \
     concatenate
 
+
 base_path = './data/saved_weights/'  # FIXME :: use environment variables
 
 FULL_YOLO_BACKEND_PATH = base_path + "full_yolo_backend.h5"  # should be hosted on a server
