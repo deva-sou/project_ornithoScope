@@ -123,7 +123,7 @@ def _main_(args):
                                 score_threshold=config['valid']['score_threshold'])
 
             # Decode and draw boxes
-            boxes = NMS(boxes)
+            #boxes = NMS(boxes)
             boxes = BT.update(boxes).values()
 
             # Draw boxes
@@ -182,7 +182,7 @@ def _main_(args):
                                 score_threshold=config['valid']['score_threshold'])
 
             # Decode and draw boxes
-            # boxes = NMS(boxes)
+            #boxes = NMS(boxes)
             boxes = BT.update(boxes).values()
             frame = draw_boxes(frame, boxes, config['model']['labels'])
 
