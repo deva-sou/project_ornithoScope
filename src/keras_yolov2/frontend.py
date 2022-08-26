@@ -60,7 +60,7 @@ class YOLO(object):
                         kernel_initializer='lecun_normal')(features)
         output = Reshape((self._grid_h, self._grid_w, self._nb_box, 4 + 1 + self._nb_class), name="YOLO_output")(output)
 
-        self._model = Model(input_image, output, name='Global model')
+        self._model = Model(input_image, output, name='Model')
 
         # initialize the weights of the detection layer
         layer = self._model.get_layer("Detection_layer")
