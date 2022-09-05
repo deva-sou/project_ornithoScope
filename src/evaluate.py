@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 from keras_yolov2.preprocessing import parse_annotation_csv
 from keras_yolov2.preprocessing import BatchGenerator
-from keras_yolov2.utils import enable_memory_growth,print_results_metrics_per_classes
+from keras_yolov2.utils import enable_memory_growth,print_results_metrics_per_classes, print_ecart_type_F1
 from keras_yolov2.frontend import YOLO
 from keras_yolov2.map_evaluation import MapEvaluation
 import argparse
@@ -19,13 +19,13 @@ argparser = argparse.ArgumentParser(
 argparser.add_argument(
     '-c',
     '--conf',
-    default='config/benchmark_config/EfficientNetV2B1-224.json',
+    default='/home/acarlier/code/project_ornithoScope/src/config/benchmark_config/MobileNetV2-224-1.0-sans_sampling_sans_cap_avec_iNat.json',
     help='path to configuration file')
 
 argparser.add_argument(
     '-w',
     '--weights',
-    default='',
+    default='/home/acarlier/code/project_ornithoScope/src/data/saved_weights/benchmark_weights/MobileNetV2-1.0-224-sans_sampling_sans_cap_avec_iNat_bestLoss.h5',
     help='path to pretrained weights')
 
 argparser.add_argument(
@@ -148,6 +148,11 @@ def _main_(args):
                         'TRUE_BOX_BUFFER': 10
                     }
             
+            #BatchGenerator nous permet tester sur 200 images par classe à chaque epoch et en les faisant "tourner", pour les classes avec beaucoup d'images
+
+            #test_imgs correspond à raw_data dans le BatchGenerator
+
+            #Pas de sampling sur les images de test
             test_generator = BatchGenerator(test_imgs, 
                                                 generator_config,
                                                 norm=yolo._feature_extractor.normalize,
@@ -157,7 +162,7 @@ def _main_(args):
                                     iou_threshold=config['valid']['iou_threshold'],
                                     score_threshold=config['valid']['score_threshold'],
                                     label_names=config['model']['labels'],
-                                    model_name=config['model']['backend'])
+                                    model_name=config['model']['backend']) 
 
             print('Number of valid images: ', len(test_imgs))
 
@@ -180,8 +185,11 @@ def _main_(args):
 
             print('\nBBox metrics:')
             bbox_mean_P, bbox_mean_R, bbox_mean_F1 = print_results_metrics_per_classes(bbox_res, seen_valid_labels)
+            sigma = print_ecart_type_F1(class_mean_F1, class_res)
             print(f"BBox globals: P={bbox_p_global} R={bbox_r_global} F1={bbox_f1_global}")
             print(f"BBox means: P={bbox_mean_P} R={bbox_mean_R} F1={bbox_mean_F1}")
+
+            print(f"BBox écart-type des f1 score: sigma = {sigma}")
 
             global_results = [class_p_global,class_r_global,class_f1_global]
             pickle.dump(class_predictions, open( f"{path}/prediction_TP_FP_FN_{config['model']['backend']}_{test_name}.p", "wb" ) )

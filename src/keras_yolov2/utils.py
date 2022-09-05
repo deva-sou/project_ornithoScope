@@ -432,30 +432,49 @@ def compute_class_TP_FP_FN(dict_pred):
     true_labels = dict_pred['true_name']
     pred_labels = dict_pred['predictions_name']
     TP = []
-    FP = copy.deepcopy(pred_labels)
-    FN = copy.deepcopy(true_labels)
-    for pl in pred_labels:
-        if pl in true_labels:
-            true_labels.remove(pl)
-            try:
-                FP.remove(pl)
-            except ValueError:
-                "not in the list"
-            try:
-                FN.remove(pl)
-            except ValueError:
-                "not in the list"
-            try:
-                TP.append(pl)
-            except ValueError:
-                "not in the list"
+    FP = []
+    FN = []
+    if true_labels != ['EMPTY']:
+        FP = copy.deepcopy(pred_labels)
+        FN = copy.deepcopy(true_labels)
+        if pred_labels == []:
+            FP = ['EMPTY']
+        else:
+            for pl in pred_labels:
+                if pl in true_labels:
+                    true_labels.remove(pl)
+                    try:
+                        FP.remove(pl)
+                    except ValueError:
+                        "not in the list"
+                    try:
+                        FN.remove(pl)
+                    except ValueError:
+                        "not in the list"
+                    try:
+                        TP.append(pl)
+                    except ValueError:
+                        "not in the list"
+    else:
+        if pred_labels != []:
+            FP = pred_labels
+            FN = ['EMPTY']
+            #print("hello")
+        else:
+            TP = ['EMPTY']
+
+
     dict_pred['TP'] = TP
     dict_pred['FN'] = FN 
     dict_pred['FP'] = FP
 
 # fonction de calcul des précisions recall et score f1 de chaque classe
-def get_precision_recall_from_prediction(list_of_results, list_of_classes):
+def get_precision_recall_from_prediction_label(list_of_results, list_of_classes):
     class_metrics = []
+    
+    list_of_classes.append('EMPTY')
+    #list_of_classes = ['MESCHA', 'SITTOR', 'MESBLE', 'MESNON', 'PINARB', 'ACCMOU', 'ROUGOR', 'VEREUR', 'TOUTUR', 'ECUROU', 'PIEBAV', 'MULGRI', 'MESNOI', 'MESHUP', 'EMPTY']
+    print(list_of_classes)
     for classes in list_of_classes:
         class_metrics.append({'Specie':classes,'TP':0, 'FP':0, 'FN':0})
     
@@ -464,20 +483,54 @@ def get_precision_recall_from_prediction(list_of_results, list_of_classes):
         # print('pred', pred_labels)
         # true_labels = list_of_results[i]['true_name']
         # print('true', true_labels)
-        TP = list_of_results[i]['TP']
+        TP = list_of_results[i]['TP'] #renvoie un eliste contenant un label
         FP = list_of_results[i]['FP']
         FN = list_of_results[i]['FN']
-        # print(f'TP {TP}, FN {FN}, FP {FP}')
+        #print(f'TP {TP}, FN {FN}, FP {FP}')
         
         for lab in TP:
             class_metrics[list_of_classes.index(lab)]['TP'] += 1
 
         for lab in FN:
             class_metrics[list_of_classes.index(lab)]['FN'] += 1
-            
-        for lab in FP:
+        
+        #print(class_metrics) renvoie une liste de dictionnaires contenant les métriques de chaque classe
+
+        
+        for lab in FP: #FP quel type: liste ou string?
             class_metrics[list_of_classes.index(lab)]['FP'] += 1
-    #print('loc', class_metrics)
+    
+    return class_metrics
+    
+def get_precision_recall_from_prediction_box(list_of_results, list_of_classes):
+    class_metrics = []
+    
+
+    for classes in list_of_classes:
+        class_metrics.append({'Specie':classes,'TP':0, 'FP':0, 'FN':0})
+    
+    for i in range(len(list_of_results)):
+        # pred_labels = list_of_results[i]['predictions_name']
+        # print('pred', pred_labels)
+        # true_labels = list_of_results[i]['true_name']
+        # print('true', true_labels)
+        TP = list_of_results[i]['TP'] #renvoie un eliste contenant un label
+        FP = list_of_results[i]['FP']
+        FN = list_of_results[i]['FN']
+        #print(f'TP {TP}, FN {FN}, FP {FP}')
+        
+        for lab in TP:
+            class_metrics[list_of_classes.index(lab)]['TP'] += 1
+
+        for lab in FN:
+            class_metrics[list_of_classes.index(lab)]['FN'] += 1
+        
+        #print(class_metrics) renvoie une liste de dictionnaires contenant les métriques de chaque classe
+
+        
+        for lab in FP: #FP quel type: liste ou string?
+            class_metrics[list_of_classes.index(lab)]['FP'] += 1
+    
     return class_metrics
 
 def results_metrics_per_classes(class_metrics):
@@ -523,6 +576,17 @@ def print_results_metrics_per_classes(class_res, seen_valid):
             F1_list.append(F1)
             print(f"Specie = {res['Specie']}, Precision = {P} - Rappel = {R} - F-score = {F1} ")
     return round(np.mean(P_list), 3), round(np.mean(R_list), 3), round(np.mean(F1_list), 3)
+
+#fonction qui calcule l'écart type des F1 score pour toutes les classes
+def print_ecart_type_F1(seen_valid, class_res): #class_res est une liste de dictionnaires contenant les métriques de chaque classe
+    F1_list = []
+    #print("class_res", class_res)
+    print("seen_valid", seen_valid)
+    for res in seen_valid:
+        if res['Specie'] in seen_valid:
+            F1 = res['F-score']
+            F1_list.append(F1)
+    return round(np.std(F1_list), 3) #3 signifie 3 chiffres après la virgule
 
 def get_p_r_f1_global(class_metrics):
     # class_metrics = {'TP': 2434, 'FP': 283, 'FN': 80}

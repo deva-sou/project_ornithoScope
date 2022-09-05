@@ -8,7 +8,7 @@ from keras_yolov2.utils import (bbox_iou,
                                 from_id_to_label_name,
                                 compute_class_TP_FP_FN,
                                 get_p_r_f1_global,
-                                get_precision_recall_from_prediction,
+                                get_precision_recall_from_prediction_label,
                                 results_metrics_per_classes)
 
 
@@ -121,7 +121,7 @@ for iou_threshold in ious:
             predictions.append(labels_predicted)
 
         # Compute global results
-        class_metrics = get_precision_recall_from_prediction(predictions, list_labels)
+        class_metrics = get_precision_recall_from_prediction_label(predictions, list_labels)
         class_res = results_metrics_per_classes(class_metrics)
         p_global, r_global, f1_global = get_p_r_f1_global(class_metrics)
 

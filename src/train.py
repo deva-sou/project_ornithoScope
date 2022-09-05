@@ -46,7 +46,7 @@ def _main_(args):
     else:
         split = True
 
-    if split:
+    if split: #si le chemin renseigné vers le fichier contenant les images de validation n'existe pas, on split le train et le valid de manière aléatoire
         train_valid_split = int(0.85 * len(train_imgs))
         np.random.shuffle(train_imgs)
 

@@ -2,9 +2,9 @@ import numpy as np
 
 
 # Parameters
-input_path = 'data/inputs/input_train.csv'
+input_path = 'data/inputs/input_train_iNat_trainset'
 separator = ','
-cap = 20
+cap = 40
 max_ratio = 0.1
 
 # Create ouput file name

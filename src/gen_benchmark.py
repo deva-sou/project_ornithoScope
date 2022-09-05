@@ -19,10 +19,10 @@ def _main_(args):
     config_folder, config_file = os.path.split(config_path)
 
     configs = [
-        {'BACKEND': 'EfficientNetB1', 'RHO': '224', 'AUG': '1'},
-        {'BACKEND': 'EfficientNetB1', 'RHO': '224', 'AUG': '2'},
-        {'BACKEND': 'EfficientNetB1', 'RHO': '224', 'AUG': '3'},
-        {'BACKEND': 'EfficientNetB1', 'RHO': '224', 'AUG': '4'},
+        {'BACKEND': 'MobileNetV2', 'RHO': '224', 'ALPHA': '1.0', 'AUG': 'sans_sampling_sans_cap'},
+        {'BACKEND': 'MobileNetV2', 'RHO': '224', 'ALPHA': '1.0', 'AUG': 'sans_sampling_avec_cap'},
+        {'BACKEND': 'MobileNetV2', 'RHO': '224', 'ALPHA': '1.0', 'AUG': 'sans_sampling_sans_cap_avec_iNat'},
+        {'BACKEND': 'MobileNetV2', 'RHO': '224', 'ALPHA': '1.0', 'AUG': 'avec_sampling_et_iNat'},
         
 
         

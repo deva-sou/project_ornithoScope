@@ -76,7 +76,7 @@ def parse_annotation_csv(csv_file, labels=[], base_path=""):
     # File_path,xmin,ymin,xmax,ymax,class
 
     all_imgs = []
-    seen_labels = {}
+    seen_labels = {'EMPTY': 0}
 
     all_imgs_indices = {}
     count_indice = 0
@@ -100,6 +100,7 @@ def parse_annotation_csv(csv_file, labels=[], base_path=""):
                     all_imgs_indices[fname] = count_indice
                     all_imgs.append(img)
                     count_indice += 1
+                    seen_labels['EMPTY'] += 1
                     continue
 
                 obj = dict()
@@ -562,7 +563,7 @@ class BatchGenerator(Sequence):
                 self._change_obj_position(y_batch, anchors_map, [idx[0], idx[1], idx[2], i, idx[4]], bkp_box, iou)
                 break
 
-    def on_epoch_end(self):
+    def on_epoch_end(self): #à la fin de chaque epoch on recopie les images jusqu'à en avoir 200 même si certaines se répètent. Après on appliquera de l'aug de données à toutes les images
         # Shuffle raw images
         if self._shuffle:
             np.random.shuffle(self._raw_images)
@@ -575,37 +576,40 @@ class BatchGenerator(Sequence):
         ## Create image set using sampling
         self._images = []
 
-        cap = 200
+        cap = 200 #on aura 200 images de chaque classe dans notre dataset
 
         # Initialize counter
         counter = {label: 0 for label in self._config['LABELS']}
         
         # Loop to complete each species from the rarest
-        counter_min_key = min(counter, key=counter.get)
-        counter_min = counter[counter_min_key]
+        counter_min_key = min(counter, key=counter.get)#la classe la plus rare
+        counter_min = counter[counter_min_key]#le nombre d'images de cette classe
         while counter_min < cap:
             # Take the first picture and replace it in the queue
-            header_image = self._image_per_specie[counter_min_key].pop(0)
-            self._image_per_specie[counter_min_key].append(header_image)
+            if self._image_per_specie[counter_min_key] != []:
+                header_image = self._image_per_specie[counter_min_key].pop(0)#on prend la première image de la classe la plus rare
+                self._image_per_specie[counter_min_key].append(header_image)#on la replace dans la queue
+            else:
+                break
 
             # Add current image to the image set
             self._images.append(header_image)
 
             # Increment counters
-            for box in header_image['object']:
+            for box in header_image['object']:#on incrémente le compteur de la classe la plus rare
                 counter[box['name']] += 1
 
             # Update rarest specie
-            counter_min_key = min(counter, key=counter.get)
-            counter_min = counter[counter_min_key]
+            counter_min_key = min(counter, key=counter.get)#on ré-actualise la classe la plus rare
+            counter_min = counter[counter_min_key]#on ré-écrit le nombre d'images de cette classe
         
-        print(counter)
+        print("Nombre d'images par classe après sampling:", counter)
             
 
 
     def aug_image(self, idx):
-        train_instance = self._images[idx]
-        image_name = train_instance['filename']
+        train_instance = self._images[idx]#on prend l'image de l'index idx
+        image_name = train_instance['filename']#on prend le nom de l'image
         if self._config['IMAGE_C'] == 1:
             image = cv2.imread(image_name, cv2.IMREAD_GRAYSCALE)
         elif self._config['IMAGE_C'] == 3:

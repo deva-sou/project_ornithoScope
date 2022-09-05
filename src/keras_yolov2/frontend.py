@@ -149,15 +149,17 @@ class YOLO(object):
         #train_imgs: the list of img to train the model, donc format jpg
         #BatchGenerator: défini dans preprocessing
 
+        #Sauf indication contraire dans le fichier de config on fait du sampling sur les images de train
         train_generator = BatchGenerator(train_imgs,
                                          generator_config,
                                          norm=self._feature_extractor.normalize,
                                          sampling=sampling,
                                          policy_container=policy)
+        #Pas de sampling sur les images de validation
         valid_generator = BatchGenerator(valid_imgs,
                                          generator_config,
                                          norm=self._feature_extractor.normalize,
-                                         jitter=False)
+                                         jitter=False) #ici on ne ré-écrit pas sampling=sampling donc le sampling prend la valeur par défaut de preprocessing.py donc false.
 
         ############################################
         # Compile the model
