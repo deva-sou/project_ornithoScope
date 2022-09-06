@@ -155,11 +155,12 @@ class YOLO(object):
                                          norm=self._feature_extractor.normalize,
                                          sampling=sampling,
                                          policy_container=policy)
-        #Pas de sampling sur les images de validation
+        
         valid_generator = BatchGenerator(valid_imgs,
                                          generator_config,
                                          norm=self._feature_extractor.normalize,
-                                         jitter=False) #ici on ne ré-écrit pas sampling=sampling donc le sampling prend la valeur par défaut de preprocessing.py donc false.
+                                         sampling=sampling,
+                                         jitter=False) #pour tester avec du sampling sur les images de validation on met sampling=sampling
 
         ############################################
         # Compile the model

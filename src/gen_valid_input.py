@@ -2,21 +2,21 @@ import numpy as np
 
 
 # Parameters
-input_path = 'data/inputs/input_train_iNat_trainset'
+input_path = '/home/acarlier/code/project_ornithoScope/src/data/inputs/input_train_iNat_trainset.csv'
 separator = ','
-cap = 40
+cap = 350
 max_ratio = 0.1
 
 # Create ouput file name
 decomposed_path = input_path.split('.')
 output_train_path = '.'.join(
         decomposed_path[:-2] +
-        [decomposed_path[-2] + '_trainset'] +
+        [decomposed_path[-2] + '_trainset_cap350'] +
         decomposed_path[-1:]
     )
 output_valid_path = '.'.join(
         decomposed_path[:-2] +
-        [decomposed_path[-2] + '_validset'] +
+        [decomposed_path[-2] + '_validset_cap350'] +
         decomposed_path[-1:]
     )
 

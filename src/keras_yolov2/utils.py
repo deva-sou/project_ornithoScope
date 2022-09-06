@@ -578,14 +578,17 @@ def print_results_metrics_per_classes(class_res, seen_valid):
     return round(np.mean(P_list), 3), round(np.mean(R_list), 3), round(np.mean(F1_list), 3)
 
 #fonction qui calcule l'écart type des F1 score pour toutes les classes
-def print_ecart_type_F1(seen_valid, class_res): #class_res est une liste de dictionnaires contenant les métriques de chaque classe
+def print_ecart_type_F1(class_res, seen_valid): #la 2ème variable appelée doit contenir la liste des classes 
     F1_list = []
-    #print("class_res", class_res)
-    print("seen_valid", seen_valid)
+    # print("class_res", class_res)
+    # print("seen_valid", seen_valid)
     for res in seen_valid:
-        if res['Specie'] in seen_valid:
+        if len(F1_list) < 13:
             F1 = res['F-score']
             F1_list.append(F1)
+
+    #print("F1_list", F1_list)
+    F1_list = np.array(F1_list)
     return round(np.std(F1_list), 3) #3 signifie 3 chiffres après la virgule
 
 def get_p_r_f1_global(class_metrics):

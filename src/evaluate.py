@@ -19,13 +19,13 @@ argparser = argparse.ArgumentParser(
 argparser.add_argument(
     '-c',
     '--conf',
-    default='/home/acarlier/code/project_ornithoScope/src/config/benchmark_config/MobileNetV2-224-1.0-sans_sampling_sans_cap_avec_iNat.json',
+    default='/home/acarlier/code/project_ornithoScope/src/config/benchmark_config/MobileNetV2-224-1.0-avec_sampling_train_et_valid_et_iNat.json',
     help='path to configuration file')
 
 argparser.add_argument(
     '-w',
     '--weights',
-    default='/home/acarlier/code/project_ornithoScope/src/data/saved_weights/benchmark_weights/MobileNetV2-1.0-224-sans_sampling_sans_cap_avec_iNat_bestLoss.h5',
+    default='/home/acarlier/code/project_ornithoScope/src/data/saved_weights/benchmark_weights/MobileNetV2-1.0-224-avec_sampling_sur_train_valid_et_iNat_bestLoss.h5',
     help='path to pretrained weights')
 
 argparser.add_argument(
