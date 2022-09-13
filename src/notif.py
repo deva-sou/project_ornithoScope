@@ -1,8 +1,9 @@
 import argparse
 import os
 import json
-
-from discord import Webhook, RequestsWebhookAdapter, File
+import sys
+from discord import Webhook, File
+from discord import RequestsWebhookAdapter
 
 
 #ce code permet d'avoir une notif discord quand on lance un multi train à partir d'un tmux
@@ -13,7 +14,7 @@ argparser = argparse.ArgumentParser(
 argparser.add_argument(
     '-c',
     '--conf',
-    default='config/pre_config/ADAM_OCS_v0_full_sampling.json',
+    default='/home/acarlier/code/project_ornithoScope/src/config/benchmark_config/Mobilenet_sampling_valid_train_inat.json',
     help='Path to config file.')
 
 CODE_QUOTES = '```'
@@ -39,7 +40,7 @@ def _main_(args):
 
     # Send message with the evaluate results and history image
     webhook = Webhook.from_url(
-            "https://discordapp.com/api/webhooks/1009005952789389392/bYMBowD3BAlfMstfRXQeRFo-UYppmshPnzJsYwztpEaWMhidpIqQqA-iEj1wVUnGBfSH",
+            "https://discordapp.com/api/webhooks/1009005803350540288/jJN-0ZFmrvuW3erbwuiOgqa0GmoHW7upHl4Zu2d-vppH2wrdk51Brp6uhZ5qZ8jTLUPu",
             adapter=RequestsWebhookAdapter())
     webhook.send(config_path)
     webhook.send(CODE_QUOTES + ''.join(bbox_lines) + CODE_QUOTES)

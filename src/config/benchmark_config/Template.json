@@ -12,8 +12,8 @@
 
     "data" : {
         "base_path":            "/home/acarlier/code/data_ornithoscope/p0133_bird_data/raw_data",
-        "train_csv_file":       "data/inputs/input_final_trainset.csv",
-        "valid_csv_file":       "data/inputs/input_final_validset.csv",
+        "train_csv_file":       "data/inputs/input_train_iNat_trainset.csv",
+        "valid_csv_file":       "data/inputs/input_train_iNat_validset.csv",
         "test_csv_file":        ["data/inputs/input_test.csv"], 
         "saved_weight_path":    "data/saved_weights/",
         "saved_pickles_path":   "data/pickles"

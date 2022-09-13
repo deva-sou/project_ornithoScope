@@ -52,4 +52,4 @@ Total params: 2,379,679
 Trainable params: 2,345,567
 Non-trainable params: 34,112
 _________________________________________________________________
-Loading pre-trained weights in /home/acarlier/code/project_ornithoScope/src/data/saved_weights/benchmark_weights/MobileNetV2_cap350_sampling_bestLoss.h5
+Loading pre-trained weights in /home/acarlier/code/project_ornithoScope/src/data/saved_weights/benchmark_weights/MobileNetV2-1.0-new_data-2_bestLoss.h5

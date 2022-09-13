@@ -568,13 +568,14 @@ def print_results_metrics_per_classes(class_res, seen_valid):
     F1_list = []
     for res in class_res:
         if res['Specie'] in seen_valid:
-            P = res['Precision']
-            R = res['Rappel']
-            F1 = res['F-score']
-            P_list.append(P)
-            R_list.append(R)
-            F1_list.append(F1)
-            print(f"Specie = {res['Specie']}, Precision = {P} - Rappel = {R} - F-score = {F1} ")
+            if res['Specie'] != 'EMPTY':
+                P = res['Precision']
+                R = res['Rappel']
+                F1 = res['F-score']
+                P_list.append(P)
+                R_list.append(R)
+                F1_list.append(F1)
+                print(f"Specie = {res['Specie']}, Precision = {P} - Rappel = {R} - F-score = {F1} ")
     return round(np.mean(P_list), 3), round(np.mean(R_list), 3), round(np.mean(F1_list), 3)
 
 #fonction qui calcule l'écart type des F1 score pour toutes les classes

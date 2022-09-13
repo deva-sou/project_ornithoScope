@@ -19,13 +19,13 @@ argparser = argparse.ArgumentParser(
 argparser.add_argument(
     '-c',
     '--conf',
-    default='/home/acarlier/code/project_ornithoScope/src/config/benchmark_config/MobileNetV2-224-1.0-avec_sampling_train_et_valid_et_iNat.json',
+    default='/home/acarlier/code/project_ornithoScope/src/config/benchmark_config/MobileNetV2-new_data2.json',
     help='path to configuration file')
 
 argparser.add_argument(
     '-w',
     '--weights',
-    default='/home/acarlier/code/project_ornithoScope/src/data/saved_weights/benchmark_weights/MobileNetV2-1.0-224-avec_sampling_sur_train_valid_et_iNat_bestLoss.h5',
+    default='/home/acarlier/code/project_ornithoScope/src/data/saved_weights/benchmark_weights/MobileNetV2-1.0-focal-2_bestLoss.h5',
     help='path to pretrained weights')
 
 argparser.add_argument(
@@ -157,7 +157,9 @@ def _main_(args):
                                                 generator_config,
                                                 norm=yolo._feature_extractor.normalize,
                                                 jitter=False,
+                                                sampling=False,
                                                 shuffle=False)
+            
             test_eval = MapEvaluation(yolo, test_generator,
                                     iou_threshold=config['valid']['iou_threshold'],
                                     score_threshold=config['valid']['score_threshold'],
@@ -189,7 +191,7 @@ def _main_(args):
             print(f"BBox globals: P={bbox_p_global} R={bbox_r_global} F1={bbox_f1_global}")
             print(f"BBox means: P={bbox_mean_P} R={bbox_mean_R} F1={bbox_mean_F1}")
 
-            print(f"BBox écart-type des f1 score: sigma = {sigma}")
+            print(f"Class écart-type des f1 score: sigma = {sigma}")
 
             global_results = [class_p_global,class_r_global,class_f1_global]
             pickle.dump(class_predictions, open( f"{path}/prediction_TP_FP_FN_{config['model']['backend']}_{test_name}.p", "wb" ) )
