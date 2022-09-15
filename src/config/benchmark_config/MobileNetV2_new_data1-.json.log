@@ -1,0 +1,55 @@
+Physical devices cannot be modified after being initialized
+Model: "MobileNetv2_backend"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ input_2 (InputLayer)        [(None, 224, 224, 3)]     0         
+                                                                 
+ mobilenetv2_1.00_224 (Funct  (None, 7, 7, 1280)       2257984   
+ ional)                                                          
+                                                                 
+=================================================================
+Total params: 2,257,984
+Trainable params: 2,223,872
+Non-trainable params: 34,112
+_________________________________________________________________
+None
+(7, 7)
+Model: "model"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ input_1 (InputLayer)        [(None, 224, 224, 3)]     0         
+                                                                 
+ MobileNetv2_backend (Functi  (None, 7, 7, 1280)       2257984   
+ onal)                                                           
+                                                                 
+ Detection_layer (Conv2D)    (None, 7, 7, 95)          121695    
+                                                                 
+ YOLO_output (Reshape)       (None, 7, 7, 5, 19)       0         
+                                                                 
+=================================================================
+Total params: 2,379,679
+Trainable params: 2,345,567
+Non-trainable params: 34,112
+_________________________________________________________________
+None
+Model: "model"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ input_1 (InputLayer)        [(None, 224, 224, 3)]     0         
+                                                                 
+ MobileNetv2_backend (Functi  (None, 7, 7, 1280)       2257984   
+ onal)                                                           
+                                                                 
+ Detection_layer (Conv2D)    (None, 7, 7, 95)          121695    
+                                                                 
+ YOLO_output (Reshape)       (None, 7, 7, 5, 19)       0         
+                                                                 
+=================================================================
+Total params: 2,379,679
+Trainable params: 2,345,567
+Non-trainable params: 34,112
+_________________________________________________________________
+Loading pre-trained weights in /home/acarlier/code/project_ornithoScope/src/data/saved_weights/benchmark_weights/MobileNetV2-1.0-new_data-2_bestLoss.h5

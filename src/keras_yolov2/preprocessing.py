@@ -76,7 +76,7 @@ def parse_annotation_csv(csv_file, labels=[], base_path=""):
     # File_path,xmin,ymin,xmax,ymax,class
 
     all_imgs = []
-    seen_labels = {}
+    seen_labels = {'EMPTY': 0}
 
     all_imgs_indices = {}
     count_indice = 0
@@ -100,6 +100,7 @@ def parse_annotation_csv(csv_file, labels=[], base_path=""):
                     all_imgs_indices[fname] = count_indice
                     all_imgs.append(img)
                     count_indice += 1
+                    seen_labels['EMPTY'] += 1
                     continue
 
                 obj = dict()
@@ -249,8 +250,40 @@ class CustomPolicy(policies.PolicyContainer):
         return (-np.cos(np.pi * x) + 1) / 2
 
 
-def create_mosaic(imgs, all_bbs, labels, output_size, scale_range, filter_scale=0.0):
+def crop(img, bboxs):
+    height, width = img.shape[:-1]
+
+    crop_width = 0.5
+    crop_height = 0.5
+
+    crop_shift_x = np.random.random() / 2
+    crop_shift_y = np.random.random() / 2
+
+    # Compute start and end limits
+    x_start = width * crop_shift_x
+    x_end = x_start + width * crop_width
+    y_start = height * crop_shift_y
+    y_end = y_start + height * crop_height
+    x_start, x_end, y_start, y_end = int(x_start), int(x_end), int(y_start), int(y_end)
+
+    # Crop the image
+    img = img[y_start:y_end, x_start:x_end, :]
+
+    # Crop bouding boxes
+    for bbox in bboxs:
+        bbox['xmin'] = max(bbox['xmin'], x_start) - x_start
+        bbox['ymin'] = max(bbox['ymin'], y_start) - y_start
+        bbox['xmax'] = min(bbox['xmax'], x_end) - x_start
+        bbox['ymax'] = min(bbox['ymax'], y_end) - y_start
+    
+    return img, bboxs
+
+
+def create_mosaic(imgs, all_bbs, output_size, scale_range, crop_images=False, filter_scale=1.0):
+    # Create the output image
     output_image = np.zeros(output_size, dtype=np.uint8)
+
+    # Create random borders
     scale_x = scale_range[0] + np.random.random() * (scale_range[1] - scale_range[0])
     scale_y = scale_range[0] + np.random.random() * (scale_range[1] - scale_range[0])
     divid_point_x = int(scale_x * output_size[1])
@@ -258,6 +291,10 @@ def create_mosaic(imgs, all_bbs, labels, output_size, scale_range, filter_scale=
 
     new_bboxs = []
     for i, (img, bboxs) in enumerate(zip(imgs, all_bbs)):
+
+        # Create mosaic with croped images
+        if crop_images:
+            img, bboxs = crop(img, bboxs)
         
         if i == 0:  # top-left
             initial_size = img.shape[-2::-1]
@@ -303,10 +340,10 @@ def create_mosaic(imgs, all_bbs, labels, output_size, scale_range, filter_scale=
                 bbox['ymax'] += divid_point_y
                 new_bboxs.append(bbox)
 
-    # if 0 < filter_scale:
-    #     new_bboxs = [anno for anno in new_bboxs if
-    #                 filter_scale < (anno[3] - anno[1]) and filter_scale < (anno[4] - anno[2])]
-    
+    # Remove the box if it is too small
+    new_bboxs = [bbox for bbox in new_bboxs
+            if filter_scale < (bbox['xmax'] - bbox['xmin']) and filter_scale < (bbox['ymax'] - bbox['ymin'])]
+
     return output_image, new_bboxs
 
 
@@ -314,9 +351,7 @@ class BatchGenerator(Sequence):
     def __init__(self, images, config, shuffle=True, sampling=False, jitter=True, norm=None, policy_container='none'):
 
         self._raw_images = images
-
         self._config = config
-
         self._shuffle = shuffle
         self._sampling = sampling
         self._jitter = jitter
@@ -328,6 +363,11 @@ class BatchGenerator(Sequence):
 
         self._policy_chosen = self.get_policy_container()
         
+        # Group images per species
+        self._image_per_specie = {label: [] for label in self._config['LABELS']}
+        for image in self._raw_images:
+            for box in image['object']:
+                self._image_per_specie[box['name']].append(image)
         self.on_epoch_end()
     
     def __len__(self):
@@ -337,12 +377,26 @@ class BatchGenerator(Sequence):
         return len(self._images)
 
     def load_annotation(self, i):
-        annots = []
+        """
+        Load the i-th annotation.
+        """
+        # Extract image width and height
+        width = float(self._images[i]['width'])
+        height = float(self._images[i]['height'])
 
+        annots = []
+        # List all annotations
         for obj in self._images[i]['object']:
-            annot = [obj['xmin'], obj['ymin'], obj['xmax'], obj['ymax'], self._config['LABELS'].index(obj['name'])]
+            annot = [
+                    obj['xmin'] / width,
+                    obj['ymin'] / height,
+                    obj['xmax'] / width,
+                    obj['ymax'] / height,
+                    self._config['LABELS'].index(obj['name'])
+                ]
             annots += [annot]
 
+        # In case of empty image, create an empty annotation list
         if len(annots) == 0:
             annots = [[]]
 
@@ -415,15 +469,18 @@ class BatchGenerator(Sequence):
                     img, bbs = self.aug_image(l_bound + 4 * instance_count + i)
                     imgs.append(img)
                     all_bbs.append(bbs)
+                
+                # Crop images
+                crop_images = self._config['MOSAIC'].find('crop') >= 0
 
                 # Merge images to create mosaic
                 img, all_bbs = create_mosaic(
                         imgs=imgs,
                         all_bbs=all_bbs,
-                        labels=self._config['LABELS'],
                         output_size=(self._config['IMAGE_W'], self._config['IMAGE_H'], 3),
-                        scale_range=(0.3, 0.7),
-                        filter_scale=0.0
+                        scale_range=(0.4, 0.6),
+                        crop_images=crop_images,
+                        filter_scale=1.0
                     )
                 
 
@@ -506,7 +563,7 @@ class BatchGenerator(Sequence):
                 self._change_obj_position(y_batch, anchors_map, [idx[0], idx[1], idx[2], i, idx[4]], bkp_box, iou)
                 break
 
-    def on_epoch_end(self):
+    def on_epoch_end(self): #à la fin de chaque epoch on recopie les images jusqu'à en avoir 200 même si certaines se répètent. Après on appliquera de l'aug de données à toutes les images
         # Shuffle raw images
         if self._shuffle:
             np.random.shuffle(self._raw_images)
@@ -519,47 +576,40 @@ class BatchGenerator(Sequence):
         ## Create image set using sampling
         self._images = []
 
-        cap = 500
+        cap = 200 #on aura 200 images de chaque classe dans notre dataset
 
         # Initialize counter
         counter = {label: 0 for label in self._config['LABELS']}
-
-        # Group images per species
-        image_per_specie = {label: [] for label in self._config['LABELS']}
-        for image in self._raw_images:
-            for box in image['object']:
-                image_per_specie[box['name']].append(image)
-        
-        # Shuffle a bit
-        for image_list in image_per_specie.values():
-            np.random.shuffle(image_list)
         
         # Loop to complete each species from the rarest
-        counter_min_key = min(counter, key=counter.get)
-        counter_min = counter[counter_min_key]
+        counter_min_key = min(counter, key=counter.get)#la classe la plus rare
+        counter_min = counter[counter_min_key]#le nombre d'images de cette classe
         while counter_min < cap:
             # Take the first picture and replace it in the queue
-            header_image = image_per_specie[counter_min_key].pop(0)
-            image_per_specie[counter_min_key].append(header_image)
+            if self._image_per_specie[counter_min_key] != []:
+                header_image = self._image_per_specie[counter_min_key].pop(0)#on prend la première image de la classe la plus rare
+                self._image_per_specie[counter_min_key].append(header_image)#on la replace dans la queue
+            else:
+                break
 
             # Add current image to the image set
             self._images.append(header_image)
 
             # Increment counters
-            for box in header_image['object']:
+            for box in header_image['object']:#on incrémente le compteur de la classe la plus rare
                 counter[box['name']] += 1
 
             # Update rarest specie
-            counter_min_key = min(counter, key=counter.get)
-            counter_min = counter[counter_min_key]
+            counter_min_key = min(counter, key=counter.get)#on ré-actualise la classe la plus rare
+            counter_min = counter[counter_min_key]#on ré-écrit le nombre d'images de cette classe
         
-        print(counter)
+        print("Nombre d'images par classe après sampling:", counter)
             
 
 
     def aug_image(self, idx):
-        train_instance = self._images[idx]
-        image_name = train_instance['filename']
+        train_instance = self._images[idx]#on prend l'image de l'index idx
+        image_name = train_instance['filename']#on prend le nom de l'image
         if self._config['IMAGE_C'] == 1:
             image = cv2.imread(image_name, cv2.IMREAD_GRAYSCALE)
         elif self._config['IMAGE_C'] == 3:

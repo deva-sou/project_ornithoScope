@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 from keras_yolov2.preprocessing import parse_annotation_csv
 from keras_yolov2.preprocessing import BatchGenerator
-from keras_yolov2.utils import enable_memory_growth,print_results_metrics_per_classes
+from keras_yolov2.utils import enable_memory_growth,print_results_metrics_per_classes, print_ecart_type_F1
 from keras_yolov2.frontend import YOLO
 from keras_yolov2.map_evaluation import MapEvaluation
 import argparse
@@ -19,20 +19,13 @@ argparser = argparse.ArgumentParser(
 argparser.add_argument(
     '-c',
     '--conf',
-    default='config/config_lab_mobilenetV1.json',
+    default='/home/acarlier/code/project_ornithoScope/src/config/benchmark_config/MobileNetV2-new_data2.json',
     help='path to configuration file')
-
-argparser.add_argument(
-    '-i',
-    '--iou',
-    default=0.5,
-    help='IOU threshold',
-    type=float)
 
 argparser.add_argument(
     '-w',
     '--weights',
-    default='',
+    default='/home/acarlier/code/project_ornithoScope/src/data/saved_weights/benchmark_weights/MobileNetV2-1.0-focal-2_bestLoss.h5',
     help='path to pretrained weights')
 
 argparser.add_argument(
@@ -126,14 +119,21 @@ def _main_(args):
     print("Directory name for metrics: ", directory_name)
     parent_dir = config['data']['saved_pickles_path']
     path = os.path.join(parent_dir, directory_name)
-    os.mkdir(path)
-    for valid_path in validation_paths:
-        if os.path.exists(valid_path):
-            print(f"\n \nParsing {valid_path.split('/')[-1]}")
-            valid_imgs, seen_valid_labels = parse_annotation_csv(valid_path,
+    count = 0
+    while True:
+        try:
+            os.mkdir(path + f'_{count}')
+            break
+        except:
+            count += 1
+    path += f'_{count}'
+    for test_path in validation_paths:
+        if os.path.exists(test_path):
+            print(f"\n \nParsing {test_path.split('/')[-1]}")
+            test_imgs, seen_valid_labels = parse_annotation_csv(test_path,
                                                             config['model']['labels'],
                                                             config['data']['base_path'])
-            #print("computing mAP for iou threshold = {}".format(args.iou))
+                                                            
             generator_config = {
                         'IMAGE_H': yolo._input_size[0],
                         'IMAGE_W': yolo._input_size[1],
@@ -145,34 +145,61 @@ def _main_(args):
                         'CLASS': len(yolo.labels),
                         'ANCHORS': yolo._anchors,
                         'BATCH_SIZE': 4,
-                        'TRUE_BOX_BUFFER': 10 # yolo._max_box_per_image,
-                    } 
-            valid_generator = BatchGenerator(valid_imgs, 
+                        'TRUE_BOX_BUFFER': 10
+                    }
+            
+            #BatchGenerator nous permet tester sur 200 images par classe à chaque epoch et en les faisant "tourner", pour les classes avec beaucoup d'images
+
+            #test_imgs correspond à raw_data dans le BatchGenerator
+
+            #Pas de sampling sur les images de test
+            test_generator = BatchGenerator(test_imgs, 
                                                 generator_config,
                                                 norm=yolo._feature_extractor.normalize,
-                                                jitter=False)
-            valid_eval = MapEvaluation(yolo, valid_generator,
-                                    iou_threshold=args.iou,
+                                                jitter=False,
+                                                sampling=False,
+                                                shuffle=False)
+            
+            test_eval = MapEvaluation(yolo, test_generator,
+                                    iou_threshold=config['valid']['iou_threshold'],
+                                    score_threshold=config['valid']['score_threshold'],
                                     label_names=config['model']['labels'],
-                                    model_name=config['model']['backend'])
-            print('Number of valid images: ', len(valid_imgs))
+                                    model_name=config['model']['backend']) 
+
+            print('Number of valid images: ', len(test_imgs))
+
             print('Computing metrics per classes...')
-            boxes_preds, predictions,class_metrics,class_res,p_global, r_global,f1_global = valid_eval.evaluate_map()
+            (boxes_preds, bad_boxes_preds,
+            class_predictions, class_metrics, class_res, class_p_global, class_r_global, class_f1_global,
+            bbox_predictions, bbox_metrics, bbox_res, bbox_p_global, bbox_r_global, bbox_f1_global
+            ) = test_eval.compute_P_R_F1()
             print('Done.')
-            #print('\nTask: ', valid_path)
-            task_name = valid_path.split('/')[-1].split('.')[0]
-            print("For ",task_name)
+
+            test_name = test_path.split('/')[-1].split('.')[0]
+            print("For", test_name)
             print('VALIDATION LABELS: ', seen_valid_labels)
             print('Final results:')
-            mean_P, mean_R, mean_F1 = print_results_metrics_per_classes(class_res, seen_valid_labels)
-            print(f"Globals: P={p_global} R={r_global} F1={f1_global}")
-            print("Means: P=%.3f R=%.3f F1=%.3f\n" % (mean_P, mean_R, mean_F1))
-            global_results = [p_global,r_global,f1_global]
-            pickle.dump(predictions, open( f"{path}/prediction_TP_FP_FN_{config['model']['backend']}_{task_name}.p", "wb" ) )
-            pickle.dump(class_metrics, open( f"{path}/TP_FP_FN_{config['model']['backend']}_{task_name}.p", "wb" ) )
-            pickle.dump(class_res, open( f"{path}/P_R_F1_{config['model']['backend']}_{task_name}.p", "wb" ) )
-            pickle.dump(global_results, open( f"{path}/P_R_F1_global_{config['model']['backend']}_{task_name}.p", "wb" ) )  
-            pickle.dump(boxes_preds, open(f"{path}/boxes_{config['model']['backend']}_{task_name}.p", "wb"))
+
+            print('\nClass metrics:')
+            class_mean_P, class_mean_R, class_mean_F1 = print_results_metrics_per_classes(class_res, seen_valid_labels)
+            print(f"Class globals: P={class_p_global} R={class_r_global} F1={class_f1_global}")
+            print(f"Class means: P={class_mean_P} R={class_mean_R} F1={class_mean_F1}")
+
+            print('\nBBox metrics:')
+            bbox_mean_P, bbox_mean_R, bbox_mean_F1 = print_results_metrics_per_classes(bbox_res, seen_valid_labels)
+            sigma = print_ecart_type_F1(class_mean_F1, class_res)
+            print(f"BBox globals: P={bbox_p_global} R={bbox_r_global} F1={bbox_f1_global}")
+            print(f"BBox means: P={bbox_mean_P} R={bbox_mean_R} F1={bbox_mean_F1}")
+
+            print(f"Class écart-type des f1 score: sigma = {sigma}")
+
+            global_results = [class_p_global,class_r_global,class_f1_global]
+            pickle.dump(class_predictions, open( f"{path}/prediction_TP_FP_FN_{config['model']['backend']}_{test_name}.p", "wb" ) )
+            pickle.dump(class_metrics, open( f"{path}/TP_FP_FN_{config['model']['backend']}_{test_name}.p", "wb" ) )
+            pickle.dump(class_res, open( f"{path}/P_R_F1_{config['model']['backend']}_{test_name}.p", "wb" ) )
+            pickle.dump(global_results, open( f"{path}/P_R_F1_global_{config['model']['backend']}_{test_name}.p", "wb" ) )  
+            pickle.dump(boxes_preds, open(f"{path}/boxes_{config['model']['backend']}_{test_name}.p", "wb"))
+            pickle.dump(bad_boxes_preds, open(f"{path}/bad_boxes_{config['model']['backend']}_{test_name}.p", "wb"))
 
 if __name__ == '__main__':
     _args = argparser.parse_args()

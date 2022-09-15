@@ -10,8 +10,19 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 
-from .backend import (TinyYoloFeature, FullYoloFeature, MobileNetFeature, MobileNetV2Feature, SqueezeNetFeature, Inception3Feature,
-                      VGG16Feature, ResNet50Feature, BaseFeatureExtractor)
+from .backend import (  EfficientNetB0Feature, EfficientNetV2B0Feature, EfficientNetB1Feature, EfficientNetV2B1Feature,
+                        MobileNetV3LargeFeature,
+                        MobileNetV3SmallFeature,
+                        TinyYoloFeature,
+                        FullYoloFeature,
+                        MobileNetFeature,
+                        MobileNetV2Feature,
+                        SqueezeNetFeature,
+                        Inception3Feature,
+                        VGG16Feature,
+                        ResNet50Feature,
+                        ResNet101Feature,
+                        BaseFeatureExtractor)
 
 
 class BoundBox:
@@ -38,6 +49,9 @@ class BoundBox:
         #if self.score == -1: -> Bug sur le nombre de bbox prédites
         self.score = self.classes[self.get_label()]*self.c
         return self.score
+    
+    def copy(self):
+        return BoundBox(self.xmin, self.ymin, self.xmax, self.ymax, self.c, self.classes.copy())
 
     def __repr__(self):
         """
@@ -113,7 +127,7 @@ def draw_boxes(image, boxes, labels):
     return image
 
 
-def decode_netout(netout, anchors, nb_class, obj_threshold=0.5, nms_threshold=0.3):
+def decode_netout(netout, anchors, nb_class, obj_threshold=0.5, nms_threshold=0.3): #on transforme ce qui sort du réseau en bounding boxes
     grid_h, grid_w, nb_box = netout.shape[:3]
 
     boxes = []
@@ -264,24 +278,38 @@ def import_feature_extractor(backend, input_size, freeze=False):
         feature_extractor = Inception3Feature(input_size, freeze=freeze)
     elif backend == 'SqueezeNet':
         feature_extractor = SqueezeNetFeature(input_size, freeze=freeze)
+    elif backend.startswith('EfficientNetB0'): #startswith est une method qui recherche le début d'un string
+        feature_extractor = EfficientNetB0Feature(input_size, freeze=freeze)
+    elif backend.startswith('EfficientNetV2B0'):
+        feature_extractor = EfficientNetV2B0Feature(input_size, freeze=freeze)
+    elif backend.startswith('EfficientNetB1'):
+        feature_extractor = EfficientNetB1Feature(input_size, freeze=freeze)
+    elif backend.startswith('EfficientNetV2B1'):
+        feature_extractor = EfficientNetV2B1Feature(input_size, freeze=freeze)
+    elif backend.startswith('MobileNetV3Small'):
+        # Extract ALPHA
+        alpha = re.search("alpha=([0-1]?\.[0-9]*)", backend)
+        alpha = float(alpha.group(1)) if alpha != None else 1.0
+        # Build MobileNetFeature
+        feature_extractor = MobileNetV3SmallFeature(input_size, freeze=freeze, alpha=alpha)
+    elif backend.startswith('MobileNetV3Large'):
+        # Extract ALPHA
+        alpha = re.search("alpha=([0-1]?\.[0-9]*)", backend)
+        alpha = float(alpha.group(1)) if alpha != None else 1.0
+        # Build MobileNetFeature
+        feature_extractor = MobileNetV3LargeFeature(input_size, freeze=freeze, alpha=alpha)
     elif backend.startswith('MobileNetV2'):
         # Extract ALPHA
         alpha = re.search("alpha=([0-1]?\.[0-9]*)", backend)
         alpha = float(alpha.group(1)) if alpha != None else 1.0
-        # Extract RHO
-        rho = re.search("rho=([0-9]+)", backend)
-        rho = int(rho.group(1)) if rho != None else 1
         # Build MobileNetFeature
-        feature_extractor = MobileNetV2Feature(input_size, freeze=freeze, alpha=alpha, depth_multiplier=rho)
+        feature_extractor = MobileNetV2Feature(input_size, freeze=freeze, alpha=alpha)
     elif backend.startswith('MobileNet'):
         # Extract ALPHA
         alpha = re.search("alpha=([0-1]?\.[0-9]*)", backend)
         alpha = float(alpha.group(1)) if alpha != None else 1.0
-        # Extract RHO
-        rho = re.search("rho=([0-9]+)", backend)
-        rho = int(rho.group(1)) if rho != None else 1
         # Build MobileNetFeature
-        feature_extractor = MobileNetFeature(input_size, freeze=freeze, alpha=alpha, depth_multiplier=rho)
+        feature_extractor = MobileNetFeature(input_size, freeze=freeze, alpha=alpha)
     elif backend == 'Full Yolo':
         feature_extractor = FullYoloFeature(input_size, freeze=freeze)
     elif backend == 'Tiny Yolo':
@@ -290,6 +318,8 @@ def import_feature_extractor(backend, input_size, freeze=False):
         feature_extractor = VGG16Feature(input_size, freeze=freeze)
     elif backend == 'ResNet50':
         feature_extractor = ResNet50Feature(input_size, freeze=freeze)
+    elif backend == 'ResNet101':
+        feature_extractor = ResNet101Feature(input_size, freeze=freeze)
     elif os.path.dirname(backend) != "":
         base_path = os.path.dirname(backend)
         sys.path.append(base_path)
@@ -360,43 +390,100 @@ def from_id_to_label_name(list_label, list_label_id):
     #print('to', list_ret)
     return list_ret
 
-def get_TP_FP_FN_TN(dict_pred):
+
+def compute_bbox_TP_FP_FN(pred_boxes, true_boxes, list_of_classes):
+    # Store TP, FP and FN labels
+    predictions = {'TP': [], 'FP': [], 'FN': []}
+
+    # Store nicely predicted box ids
+    good_boxes = []
+
+    # Loop on every predicted boxes
+    for k, box_pred in enumerate(pred_boxes):
+        pred_label = box_pred.get_label()
+
+        # Get true box ids with the same label
+        true_indexs = [i for i in range(len(true_boxes)) if true_boxes[i].get_label() == pred_label]
+
+        # Sort them by IoU
+        true_indexs = sorted(true_indexs, key=lambda i : bbox_iou(true_boxes[i], box_pred), reverse=True)
+
+        # The predicted box does not correspond to any true box (using class only)
+        if len(true_indexs) == 0:
+            continue
+        
+        # If the IoU is correct, it is a TP
+        if bbox_iou(true_boxes[true_indexs[0]], box_pred) > 0.5:
+            predictions['TP'].append(list_of_classes[pred_label])
+            true_boxes.pop(true_indexs[0])
+            good_boxes.append(k)
+            continue
+    
+    # Remaining predicted boxes are FP
+    predictions['FP'] = [list_of_classes[box_pred.get_label()] for k, box_pred in enumerate(pred_boxes) if not k in good_boxes]
+
+    # Remaining ture boxes are FN
+    predictions['FN'] = [list_of_classes[box_true.get_label()] for box_true in true_boxes]
+
+    return predictions
+
+
+def compute_class_TP_FP_FN(dict_pred):
     true_labels = dict_pred['true_name']
     pred_labels = dict_pred['predictions_name']
     TP = []
-    FP = copy.deepcopy(pred_labels)
-    FN = copy.deepcopy(true_labels)
-    for pl in pred_labels:
-        if pl in true_labels:
-            true_labels.remove(pl)
-            try:
-                FP.remove(pl)
-            except ValueError:
-                "not in the list"
-            try:
-                FN.remove(pl)
-            except ValueError:
-                "not in the list"
-            try:
-                TP.append(pl)
-            except ValueError:
-                "not in the list"
+    FP = []
+    FN = []
+    if true_labels != ['EMPTY']:
+        FP = copy.deepcopy(pred_labels)
+        FN = copy.deepcopy(true_labels)
+        if pred_labels == []:
+            FP = ['EMPTY']
+        else:
+            for pl in pred_labels:
+                if pl in true_labels:
+                    true_labels.remove(pl)
+                    try:
+                        FP.remove(pl)
+                    except ValueError:
+                        "not in the list"
+                    try:
+                        FN.remove(pl)
+                    except ValueError:
+                        "not in the list"
+                    try:
+                        TP.append(pl)
+                    except ValueError:
+                        "not in the list"
+    else:
+        if pred_labels != []:
+            FP = pred_labels
+            FN = ['EMPTY']
+            #print("hello")
+        else:
+            TP = ['EMPTY']
+
+
     dict_pred['TP'] = TP
     dict_pred['FN'] = FN 
     dict_pred['FP'] = FP
 
 # fonction de calcul des précisions recall et score f1 de chaque classe
-def get_precision_recall_from_prediction(list_of_results, list_of_classes):
+def get_precision_recall_from_prediction_label(list_of_results, list_of_classes):
     class_metrics = []
+    
+    list_of_classes.append('EMPTY')
+    #list_of_classes = ['MESCHA', 'SITTOR', 'MESBLE', 'MESNON', 'PINARB', 'ACCMOU', 'ROUGOR', 'VEREUR', 'TOUTUR', 'ECUROU', 'PIEBAV', 'MULGRI', 'MESNOI', 'MESHUP', 'EMPTY']
+    print(list_of_classes)
     for classes in list_of_classes:
         class_metrics.append({'Specie':classes,'TP':0, 'FP':0, 'FN':0})
     
     for i in range(len(list_of_results)):
-        pred_labels = list_of_results[i]['predictions_name']
-        #print('pred', pred_labels)
-        true_labels = list_of_results[i]['true_name']
-        #print('true', true_labels)
-        TP = list_of_results[i]['TP']
+        # pred_labels = list_of_results[i]['predictions_name']
+        # print('pred', pred_labels)
+        # true_labels = list_of_results[i]['true_name']
+        # print('true', true_labels)
+        TP = list_of_results[i]['TP'] #renvoie un eliste contenant un label
         FP = list_of_results[i]['FP']
         FN = list_of_results[i]['FN']
         #print(f'TP {TP}, FN {FN}, FP {FP}')
@@ -406,10 +493,44 @@ def get_precision_recall_from_prediction(list_of_results, list_of_classes):
 
         for lab in FN:
             class_metrics[list_of_classes.index(lab)]['FN'] += 1
-            
-        for lab in FP:
+        
+        #print(class_metrics) renvoie une liste de dictionnaires contenant les métriques de chaque classe
+
+        
+        for lab in FP: #FP quel type: liste ou string?
             class_metrics[list_of_classes.index(lab)]['FP'] += 1
-    #print('loc', class_metrics)
+    
+    return class_metrics
+    
+def get_precision_recall_from_prediction_box(list_of_results, list_of_classes):
+    class_metrics = []
+    
+
+    for classes in list_of_classes:
+        class_metrics.append({'Specie':classes,'TP':0, 'FP':0, 'FN':0})
+    
+    for i in range(len(list_of_results)):
+        # pred_labels = list_of_results[i]['predictions_name']
+        # print('pred', pred_labels)
+        # true_labels = list_of_results[i]['true_name']
+        # print('true', true_labels)
+        TP = list_of_results[i]['TP'] #renvoie un eliste contenant un label
+        FP = list_of_results[i]['FP']
+        FN = list_of_results[i]['FN']
+        #print(f'TP {TP}, FN {FN}, FP {FP}')
+        
+        for lab in TP:
+            class_metrics[list_of_classes.index(lab)]['TP'] += 1
+
+        for lab in FN:
+            class_metrics[list_of_classes.index(lab)]['FN'] += 1
+        
+        #print(class_metrics) renvoie une liste de dictionnaires contenant les métriques de chaque classe
+
+        
+        for lab in FP: #FP quel type: liste ou string?
+            class_metrics[list_of_classes.index(lab)]['FP'] += 1
+    
     return class_metrics
 
 def results_metrics_per_classes(class_metrics):
@@ -447,14 +568,29 @@ def print_results_metrics_per_classes(class_res, seen_valid):
     F1_list = []
     for res in class_res:
         if res['Specie'] in seen_valid:
-            P = res['Precision']
-            R = res['Rappel']
+            if res['Specie'] != 'EMPTY':
+                P = res['Precision']
+                R = res['Rappel']
+                F1 = res['F-score']
+                P_list.append(P)
+                R_list.append(R)
+                F1_list.append(F1)
+                print(f"Specie = {res['Specie']}, Precision = {P} - Rappel = {R} - F-score = {F1} ")
+    return round(np.mean(P_list), 3), round(np.mean(R_list), 3), round(np.mean(F1_list), 3)
+
+#fonction qui calcule l'écart type des F1 score pour toutes les classes
+def print_ecart_type_F1(class_res, seen_valid): #la 2ème variable appelée doit contenir la liste des classes 
+    F1_list = []
+    # print("class_res", class_res)
+    # print("seen_valid", seen_valid)
+    for res in seen_valid:
+        if len(F1_list) < 13:
             F1 = res['F-score']
-            P_list.append(P)
-            R_list.append(R)
             F1_list.append(F1)
-            print(f"Specie = {res['Specie']}, Precision = {P} - Rappel = {R} - F-score = {F1} ")
-    return np.mean(P_list), np.mean(R_list), np.mean(F1_list)
+
+    #print("F1_list", F1_list)
+    F1_list = np.array(F1_list)
+    return round(np.std(F1_list), 3) #3 signifie 3 chiffres après la virgule
 
 def get_p_r_f1_global(class_metrics):
     # class_metrics = {'TP': 2434, 'FP': 283, 'FN': 80}

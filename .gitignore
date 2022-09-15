@@ -3,6 +3,7 @@ __pycache__
 *.pyc
 *.h5
 *.p
+*.p.jpg
 .DS_Store
 vids
 comp.txt

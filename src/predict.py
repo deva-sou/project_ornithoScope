@@ -182,7 +182,7 @@ def _main_(args):
                             score_threshold=config['valid']['score_threshold'])
 
       # Decode and draw boxes
-      boxes = NMS(boxes)
+      # boxes = NMS(boxes)
       boxes = BT.update(boxes).values()
       frame = draw_boxes(frame, boxes, config['model']['labels'])
 
@@ -226,7 +226,7 @@ def _main_(args):
         # Create output image file/folder
         detected_images_path = os.path.join(image_path, "detected")
         if not os.path.exists(detected_images_path):
-          os.mkdir(detected_images_path)
+          os.mkdir(detected_images_path) 
 
       elif output_format.startswith('csv'):
         # Create output csv
